@@ -1,6 +1,6 @@
 context:
   region: "apne2"
-  vpc: "apne2-fastcampus"
+  vpc: "apne2-cglee"
   cidrs:
     "primary": "10.222.0.0/16"
 
