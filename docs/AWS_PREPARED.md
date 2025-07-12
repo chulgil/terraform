@@ -3,7 +3,9 @@
 ## AWS 사전 설정
 
 > EKS Cluster 및 NodeGroup 실행은 반드시 Subnet에 동일 TAG지정이 필요함
+>
 > TAG명 : kubernetes.io/cluster/<EKS Cluster명>
+>
 > TAG값 : shared
 
 
