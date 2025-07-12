@@ -1,0 +1,65 @@
+
+@startuml
+!theme plain
+skinparam backgroundColor #f8f9fa
+skinparam rectangle {
+    BackgroundColor #ffffff
+    BorderColor #cccccc
+    FontColor #333333
+}
+
+skinparam package {
+    BackgroundColor #e3f2fd
+    BorderColor #1976d2
+    FontColor #1976d2
+}
+
+actor "User" as user
+cloud "Internet Gateway" as igw
+
+package "AWS Cloud" {
+    package "VPC (Primary: 172.31.0.0/16)" as vpc {
+        cloud "Router" as router
+        
+        package "Availability Zone (ap-northeast-2a)" as az1 {
+            package "Public subnet1 (172.31.0.0/20)" as pub_subnet1 {
+                rectangle "EKS Cluster" as eks_cluster1 #orange
+                rectangle "POD1\n(Container)" as pod1_az1 #lightblue
+                rectangle "POD2\n(Container)" as pod2_az1 #lightblue
+                package "EKS Node Group" as nodegroup1 {
+                    rectangle "EKS Worker Node\n(t3a)" as worker1 #lightgreen
+                }
+            }
+        }
+        
+        package "Availability Zone (ap-northeast-2c)" as az2 {
+            package "Public subnet3 (172.31.32.0/20)" as pub_subnet3 {
+                rectangle "EKS Cluster" as eks_cluster2 #orange
+                rectangle "POD1\n(Container)" as pod1_az2 #lightblue
+                rectangle "POD2\n(Container)" as pod2_az2 #lightblue
+                package "EKS Node Group" as nodegroup2 {
+                    rectangle "EKS Worker Node\n(t3a)" as worker2 #lightgreen
+                }
+            }
+        }
+    }
+}
+
+' Network connections
+user --> igw
+igw --> router
+router --> pub_subnet1
+router --> pub_subnet3
+
+' EKS cluster relationships
+eks_cluster1 --> pod1_az1
+eks_cluster1 --> pod2_az1
+eks_cluster2 --> pod1_az2
+eks_cluster2 --> pod2_az2
+
+' Worker node relationships
+worker1 ..> pod1_az1
+worker1 ..> pod2_az1
+worker2 ..> pod1_az2
+worker2 ..> pod2_az2
+@enduml
