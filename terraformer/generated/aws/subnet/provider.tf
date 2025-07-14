@@ -4,8 +4,8 @@ provider "aws" {
 
 terraform {
 	required_providers {
-		aws = {
-	    version = "~> 6.3.0"
-		}
+	aws = {
+	  version = "~> 4.50.0"  # 안정적인 버전으로 다운그레이드
+	}
   }
 }
