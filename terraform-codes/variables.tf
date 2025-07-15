@@ -102,7 +102,7 @@ variable "node_group_ami_type" {
 variable "node_group_desired_size" {
   description = "Desired number of worker nodes"
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "node_group_min_size" {
@@ -114,7 +114,7 @@ variable "node_group_min_size" {
 variable "node_group_max_size" {
   description = "Maximum number of worker nodes"
   type        = number
-  default     = 3
+  default     = 1
 }
 
 variable "node_group_labels" {

@@ -118,22 +118,24 @@ https://github.com/GoogleCloudPlatform/terraformer/blob/master/docs/aws.md
 ### 2. Terraformer를 활용한 기존 EKS Autoscaling 자원 대상 IaC 코드 추출
 
 1. Terraformer를 활용한 기존 EKS Autoscaling 자원 대상 IaC 코드 추출
-$ terraformer import aws --regions=<리전명> --resources=<자원명> --path-pattern=
-<추출한 파일 저장 디렉토리명>
+$ terraformer import aws --regions=<리전명> --resources=<자원명> --path-pattern=<추출한 파일 저장 디렉토리명>
+
 2. 추출된 Terraform 상태파일 내 오브젝트 현황 확인
 $ terraform state list
+
 3. 추출 Terraform 상태파일을 기존 Terraform Backend 상태파일에 Import 방법
-$ terraform state mv -state-out=<기존 Terraform Backend 상태파일 저장 경로> <추출
-Terraform Object명> <Import되서 저장될 Terraform Object명>
+$ terraform state mv -state-out=<기존 Terraform Backend 상태파일 저장 경로> <추출Terraform Object명> <Import되서 저장될 Terraform Object명>
 
 
 ### 3. 추출 IaC 코드를 활용한 2번째 EKS NodeGroup 생성 및 확인
 
 1. 로컬에 있는 Terraform 상태파일을 S3 Backend Bucket으로 업로드
 $ aws s3 cp terraform.state s3://<S3 Backend Bucket명>/<업로드할 파일명>
+
 2. 초기화 전 AWS Provider로 전환
 $ terraform state replace-provider -auto-approve registry.terraform.io/-/aws
 hashicorp/aws
+
 3. 프로비저닝을 통한 생성 및 확인
 $ terraform init
 $ terraform plan

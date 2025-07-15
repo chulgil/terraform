@@ -49,5 +49,41 @@ terraform-codes/
 1. `envs/production`에서 `terraform init`, `terraform apply` 실행
 2. 변수/백엔드/모듈 구조는 각 환경에 맞게 확장 가능
 
+
+
+```bash
+
+# EKS 클러스터 IAM 역할 가져오기
+terraform import aws_iam_role.test-iam-role-eks-cluster test-iam-role-eks-cluster
+
+# EKS 노드그룹 IAM 역할 가져오기
+terraform import aws_iam_role.test-iam-role-eks-nodegroup test-iam-role-eks-nodegroup
+
+
+# VPC ID 확인 (아래 명령어로 VPC ID를 확인한 후 사용)
+aws ec2 describe-vpcs --query "Vpcs[].VpcId" --output text
+
+# 보안 그룹 ID 확인 (VPC ID를 아는 경우)
+aws ec2 describe-security-groups \
+  --filters Name=vpc-id,Values=vpc-004e1194bb2f6b0c0 \
+  --query "SecurityGroups[?GroupName=='test-sg-eks-cluster'].GroupId" \
+  --output text
+
+# 보안 그룹 가져오기 (위에서 확인한 보안 그룹 ID 사용)
+terraform import aws_security_group.test-sg-eks-cluster sg-xxxxxxxx
+
+
+# 상태 확인
+terraform state list
+
+# 계획 실행
+terraform plan
+
+# 변경사항 적용
+terraform apply
+
+
+
+```
 ---
 각 모듈 및 환경별 파일은 예시와 실제 값을 참고해 작성되어 있습니다.

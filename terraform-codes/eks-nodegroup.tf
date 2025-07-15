@@ -77,6 +77,74 @@ resource "aws_eks_node_group" "test-eks-nodegroup" {
   )
 }
 
+# EKS Node Group2
+resource "aws_eks_node_group" "test-eks-nodegroup2" {
+  cluster_name    = aws_eks_cluster.test-eks-cluster.name
+  node_group_name = "${var.cluster_name}-nodegroup2"
+  node_role_arn   = aws_iam_role.test-iam-role-eks-nodegroup.arn
+  subnet_ids      = var.subnet_ids
+  
+  # Instance configuration
+  # instance_types = var.node_group_instance_types
+  capacity_type  = var.node_group_capacity_type
+  # disk_size      = var.node_group_disk_size
+  ami_type       = var.node_group_ami_type
+  
+  # Scaling configuration
+  scaling_config {
+    desired_size = var.node_group_desired_size
+    min_size     = var.node_group_min_size
+    max_size     = var.node_group_max_size
+  }
+
+  # Update configuration
+  update_config {
+    max_unavailable_percentage = 33
+  }
+
+  # Labels and taints
+  labels = merge(
+    var.node_group_labels,
+    {
+      "node.kubernetes.io/role" = "worker"
+    }
+  )
+
+  # Taints (uncomment and modify as needed)
+  # taint {
+  #   key    = "dedicated"
+  #   value  = "gpuGroup"
+  #   effect = "NO_SCHEDULE"
+  # }
+
+  # Launch template (uncomment if using custom launch template)
+  launch_template {
+    name    = aws_launch_template.test_launch_template.name
+    version = aws_launch_template.test_launch_template.latest_version
+  }
+
+  # Ensure proper ordering of resource creation
+  depends_on = [
+    aws_iam_role_policy_attachment.test-iam-policy-eks-nodegroup,
+    aws_iam_role_policy_attachment.test-iam-policy-eks-nodegroup-cni,
+    aws_iam_role_policy_attachment.test-iam-policy-eks-nodegroup-ecr,
+    aws_eks_cluster.test-eks-cluster,
+    aws_security_group_rule.nodes,
+    aws_security_group_rule.nodes_inbound
+  ]
+
+  tags = merge(
+    var.tags,
+    {
+      "Name" = "${var.cluster_name}-node-group2"
+      # Required for AWS Load Balancer Controller
+      "k8s.io/cluster-autoscaler/enabled" = "true"
+      "k8s.io/cluster-autoscaler/${var.cluster_name}" = "owned"
+    }
+  )
+}
+
+
 # Node Group IAM Role for Service Account
 resource "aws_iam_openid_connect_provider" "cluster" {
   client_id_list  = ["sts.amazonaws.com"]
