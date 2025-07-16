@@ -77,17 +77,17 @@ resource "aws_eks_node_group" "test-eks-nodegroup" {
   )
 }
 
-# EKS Node Group2
+# EKS Node Group 2
 resource "aws_eks_node_group" "test-eks-nodegroup2" {
   cluster_name    = aws_eks_cluster.test-eks-cluster.name
   node_group_name = "${var.cluster_name}-nodegroup2"
   node_role_arn   = aws_iam_role.test-iam-role-eks-nodegroup.arn
   subnet_ids      = var.subnet_ids
   
-  # Instance configuration
-  # instance_types = var.node_group_instance_types
+  # Instance type and capacity type
+  instance_types = var.node_group_instance_types
   capacity_type  = var.node_group_capacity_type
-  # disk_size      = var.node_group_disk_size
+  disk_size      = var.node_group_disk_size
   ami_type       = var.node_group_ami_type
   
   # Scaling configuration
@@ -110,27 +110,12 @@ resource "aws_eks_node_group" "test-eks-nodegroup2" {
     }
   )
 
-  # Taints (uncomment and modify as needed)
-  # taint {
-  #   key    = "dedicated"
-  #   value  = "gpuGroup"
-  #   effect = "NO_SCHEDULE"
-  # }
-
-  # Launch template (uncomment if using custom launch template)
-  launch_template {
-    name    = aws_launch_template.test_launch_template.name
-    version = aws_launch_template.test_launch_template.latest_version
-  }
-
   # Ensure proper ordering of resource creation
   depends_on = [
     aws_iam_role_policy_attachment.test-iam-policy-eks-nodegroup,
     aws_iam_role_policy_attachment.test-iam-policy-eks-nodegroup-cni,
     aws_iam_role_policy_attachment.test-iam-policy-eks-nodegroup-ecr,
-    aws_eks_cluster.test-eks-cluster,
-    aws_security_group_rule.nodes,
-    aws_security_group_rule.nodes_inbound
+    aws_eks_cluster.test-eks-cluster
   ]
 
   tags = merge(

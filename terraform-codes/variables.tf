@@ -25,7 +25,7 @@ variable "subnet_ids" {
 variable "eks_version" {
   description = "Kubernetes version to use for the EKS cluster"
   type        = string
-  default     = "1.28"
+  default     = "1.33"
 }
 
 variable "cluster_endpoint_public_access" {
@@ -96,7 +96,7 @@ variable "node_group_disk_size" {
 variable "node_group_ami_type" {
   description = "Type of Amazon Machine Image (AMI) associated with the EKS Node Group"
   type        = string
-  default     = "AL2_x86_64"  # AL2_x86_64, AL2_x86_64_GPU, AL2_ARM_64, CUSTOM
+  default     = "AL2023_x86_64_STANDARD"  # AL2023_x86_64_STANDARD, AL2_x86_64, AL2_x86_64_GPU, AL2_ARM_64, CUSTOM
 }
 
 variable "node_group_desired_size" {
