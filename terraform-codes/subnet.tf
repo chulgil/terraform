@@ -54,7 +54,7 @@ resource "aws_subnet" "public_eks_pods" {
   count  = 2
   vpc_id = var.vpc_id
 
-  cidr_block        = count.index == 0 ? "100.64.0.0/19" : "100.64.32.0/19"
+  cidr_block        = count.index == 0 ? "10.0.32.0/20" : "10.0.48.0/20"
   availability_zone = "ap-northeast-2${element(["a", "b"], count.index)}"
 
   # Common settings

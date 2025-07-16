@@ -45,8 +45,50 @@ resource "aws_security_group" "test-sg-eks-nodegroup" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
+
+# Security group for EKS pods
+resource "aws_security_group" "test-sg-eks-pods" {
+  name        = "${var.cluster_name}-pods-sg"
+  description = "Security group for EKS pods"
+  vpc_id      = var.vpc_id
+
+  # Allow all outbound traffic
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow all traffic within the security group
+  ingress {
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
+    self      = true
+  }
+
+  # Allow traffic from node group to pods
+  ingress {
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    security_groups = [aws_security_group.test-sg-eks-nodegroup.id]
+  }
+
+  # Allow traffic from cluster to pods
+  ingress {
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    security_groups = [aws_security_group.test-sg-eks-cluster.id]
+  }
 
   tags = merge(
+    {
+      Name = "${var.cluster_name}-pods-sg"
+    },
     var.tags,
     {
       "Name" = "${var.cluster_name}-nodegroup-sg"

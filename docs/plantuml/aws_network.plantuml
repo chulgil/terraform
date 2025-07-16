@@ -1,0 +1,138 @@
+@startuml
+!theme plain
+skinparam backgroundColor #f8f9fa
+skinparam rectangle {
+    BackgroundColor #ffffff
+    BorderColor #cccccc
+    FontColor #333333
+}
+
+skinparam package {
+    BackgroundColor #e3f2fd
+    BorderColor #1976d2
+    FontColor #1976d2
+}
+
+actor "User" as user
+cloud "Internet Gateway" as igw
+
+package "AWS Cloud" {
+    package "VPC (10.0.0.0/16)" as vpc {
+        cloud "Router" as router
+        
+        package "Availability Zone (ap-northeast-2a)" as az1 {
+            package "Public Subnet 1 (10.0.0.0/20)" as pub_subnet1 {
+                rectangle "NAT Gateway" as nat_gw1 #pink
+                rectangle "EKS Node Group 1" as nodegroup1 {
+                    rectangle "Worker Node" as worker1 #lightgreen
+                }
+                rectangle "EKS Pods Subnet 1\n(100.64.0.0/19)" as eks_pod1 #lightblue
+            }
+            
+            package "Private Subnet 1 (10.0.128.0/20)" as priv_subnet1 {
+                rectangle "EKS Cluster" as eks_cluster1 #orange
+                rectangle "Application 1" as app1 #lightblue
+            }
+        }
+        
+        package "Availability Zone (ap-northeast-2b)" as az2 {
+            package "Public Subnet 2 (10.0.16.0/20)" as pub_subnet2 {
+                rectangle "NAT Gateway" as nat_gw2 #pink
+                rectangle "EKS Node Group 2" as nodegroup2 {
+                    rectangle "Worker Node" as worker2 #lightgreen
+                }
+                rectangle "EKS Pods Subnet 2\n(100.64.32.0/19)" as eks_pod2 #lightblue
+            }
+            
+            package "Private Subnet 2 (10.0.144.0/20)" as priv_subnet2 {
+                rectangle "EKS Cluster" as eks_cluster2 #orange
+                rectangle "Application 2" as app2 #lightblue
+            }
+        }
+        
+        ' Security Groups
+        rectangle "Security Groups" as sgs {
+            rectangle "EKS Cluster SG" as sg_cluster #lightblue
+            rectangle "Node Group SG" as sg_node #lightgreen
+            rectangle "Pods SG" as sg_pods #lightpink
+        }
+    }
+}
+
+' Connections
+user --> igw
+igw --> router
+
+' Public Subnet Connections
+router --> pub_subnet1
+router --> pub_subnet2
+
+' Private Subnet Connections
+router --> priv_subnet1
+router --> priv_subnet2
+
+' EKS Cluster Connections
+eks_cluster1 --> worker1
+worker1 --> eks_pod1
+eks_pod1 --> app1
+
+' Security Group Connections
+sg_cluster --> sg_node
+sg_node --> sg_pods
+
+' Styling
+skinparam rectangle {
+    BackgroundColor #ffffff
+    BorderColor #333333
+    BorderThickness 1
+    Shadowing false
+}
+
+' Color coding
+skinparam rectangle<<pink>> {
+    BackgroundColor #ffcdd2
+    BorderColor #d32f2f
+}
+
+skinparam rectangle<<lightblue>> {
+    BackgroundColor #bbdefb
+    BorderColor #1976d2
+}
+
+skinparam rectangle<<lightgreen>> {
+    BackgroundColor #c8e6c9
+    BorderColor #388e3c
+}
+
+skinparam rectangle<<orange>> {
+    BackgroundColor #ffe0b2
+    BorderColor #f57c00
+}
+
+skinparam rectangle<<lightpink>> {
+    BackgroundColor #f8bbd0
+    BorderColor #c2185b
+}
+
+' Add notes for security groups
+note right of sg_cluster
+  <b>EKS Cluster SG</b>
+  - Allow 443 from Node Group SG
+  - Allow all outbound
+end note
+
+note right of sg_node
+  <b>Node Group SG</b>
+  - Allow all from Cluster SG
+  - Allow all within group
+end note
+
+note right of sg_pods
+  <b>Pods SG</b>
+  - Allow all from Node Group SG
+  - Allow all within group
+end note
+
+@enduml
+
+@enduml
