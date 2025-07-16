@@ -28,6 +28,18 @@ variable "eks_version" {
   default     = "1.33"
 }
 
+variable "internet_gateway_id" {
+  description = "ID of the Internet Gateway"
+  type        = string
+  default     = "igw-00541ae8699c3170d"
+}
+
+variable "default_route_table_id" {
+  description = "ID of the default route table"
+  type        = string
+  default     = "rtb-0043a5cc541da3fa1"
+}
+
 variable "cluster_endpoint_public_access" {
   description = "Whether the Amazon EKS public API server endpoint is enabled"
   type        = bool
