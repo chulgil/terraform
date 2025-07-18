@@ -1,7 +1,3 @@
-provider "aws" {
-  region = var.region
-}
-
 locals {
   common_tags = {
     Environment = var.environment
@@ -49,14 +45,19 @@ module "eks" {
   max_size     = var.max_size
   min_size     = var.min_size
   
+  # ENI Config variables
+  region                     = var.region
+  availability_zones         = var.availability_zones
+  eniconfig_security_group_id = module.vpc.default_security_group_id
+  
   tags = merge(
     local.common_tags,
     {
-      Environment = var.environment
-      Terraform   = "true"
+      "kubernetes.io/cluster/${var.environment}-eks-cluster" = "shared"
     }
   )
 }
+
 
 # Outputs
 output "vpc_id" {

@@ -4,12 +4,6 @@ variable "environment" {
   default     = "dev"
 }
 
-variable "region" {
-  description = "AWS region"
-  type        = string
-  default     = "ap-northeast-2"
-}
-
 variable "vpc_cidr" {
   description = "CIDR block for VPC"
   type        = string
@@ -19,13 +13,19 @@ variable "vpc_cidr" {
 variable "public_subnet_cidrs" {
   description = "List of public subnet CIDR blocks"
   type        = list(string)
-  default     = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  default     = ["10.0.1.0/24", "10.0.2.0/24"]
 }
 
 variable "private_subnet_cidrs" {
   description = "List of private subnet CIDR blocks"
   type        = list(string)
   default     = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
+}
+
+variable "availability_zones" {
+  description = "List of availability zones for the EKS cluster"
+  type        = list(string)
+  default     = ["ap-northeast-2a", "ap-northeast-2b", "ap-northeast-2c"]
 }
 
 variable "kubernetes_version" {
