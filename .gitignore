@@ -90,3 +90,6 @@ google/
 # Terraspace
 .terraspace-cache/
 .terraspace-*/
+
+# Deployment logs
+/logs/deploy_*.log
