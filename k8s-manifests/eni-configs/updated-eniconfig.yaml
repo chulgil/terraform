@@ -1,0 +1,30 @@
+---
+# ap-northeast-2a 가용 영역용 ENI 설정
+apiVersion: crd.k8s.amazonaws.com/v1alpha1
+kind: ENIConfig
+metadata:
+  name: ap-northeast-2a
+spec:
+  securityGroups:
+    - sg-039b070d300ef2fa0  # EKS 클러스터 보안 그룹
+  subnet: subnet-079691f73b04a014b  # ap-northeast-2a 서브넷
+---
+# ap-northeast-2b 가용 영역용 ENI 설정
+apiVersion: crd.k8s.amazonaws.com/v1alpha1
+kind: ENIConfig
+metadata:
+  name: ap-northeast-2b
+spec:
+  securityGroups:
+    - sg-039b070d300ef2fa0  # EKS 클러스터 보안 그룹
+  subnet: subnet-063ec53f11aa678f1  # ap-northeast-2b 서브넷
+---
+# ap-northeast-2c 가용 영역용 ENI 설정
+apiVersion: crd.k8s.amazonaws.com/v1alpha1
+kind: ENIConfig
+metadata:
+  name: ap-northeast-2c
+spec:
+  securityGroups:
+    - sg-0abcdef1234567890  # 실제 보안 그룹 ID로 교체 필요
+  subnet: subnet-0123456789abcdef1  # 실제 서브넷 ID로 교체 필요

@@ -17,7 +17,7 @@ private_subnet_cidrs = [
 ]
 
 # EKS configuration
-kubernetes_version = "1.28"
+kubernetes_version = "1.33"
 instance_types    = ["t3.medium"]
 ami_type         = "AL2023_x86_64_STANDARD"  # Options: AL2023_x86_64_STANDARD, AL2023_ARM_64_STANDARD, BOTTLEROCKET_x86_64, etc.
 
