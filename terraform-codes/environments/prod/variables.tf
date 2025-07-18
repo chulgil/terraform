@@ -1,13 +1,7 @@
 variable "environment" {
-  description = "Environment name"
+  description = "환경 이름 (예: prod)"
   type        = string
   default     = "prod"
-}
-
-variable "region" {
-  description = "AWS region"
-  type        = string
-  default     = "ap-northeast-2"
 }
 
 variable "vpc_cidr" {

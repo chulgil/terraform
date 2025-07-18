@@ -22,7 +22,7 @@ variable "private_subnet_ids" {
 variable "kubernetes_version" {
   description = "Kubernetes version to use for the EKS cluster"
   type        = string
-  default     = "1.28"
+  default     = "1.33"
 }
 
 variable "instance_types" {
@@ -67,9 +67,25 @@ variable "node_group_name" {
 }
 
 variable "node_disk_size" {
-  description = "Disk size in GiB for worker nodes"
+  description = "Size of the disk attached to each worker node (in GB)"
   type        = number
   default     = 20
+}
+
+variable "region" {
+  description = "AWS region where the EKS cluster will be created"
+  type        = string
+}
+
+variable "availability_zones" {
+  description = "List of availability zones for the EKS cluster"
+  type        = list(string)
+  default     = ["ap-northeast-2a", "ap-northeast-2b"]
+}
+
+variable "eniconfig_security_group_id" {
+  description = "Security group ID to be used in ENI Config"
+  type        = string
 }
 
 variable "tags" {

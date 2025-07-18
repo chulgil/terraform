@@ -23,6 +23,16 @@
 1. AWS 계정 및 자격 증명 설정
 2. Terraform 1.0.0 이상 설치
 3. AWS CLI 설치 및 구성
+4. S3 버킷과 DynamoDB 테이블이 이미 생성되어 있어야 합니다:
+   - S3 버킷: `test-s3-tf-state-421114334882`
+   - DynamoDB 테이블: `test-ddb-tf-lock`
+
+### 백엔드 구성
+
+이 프로젝트는 상태 관리를 위해 S3 백엔드를 사용하며, 상태 잠금을 위해 DynamoDB를 사용합니다. 자동으로 구성되므로 별도의 설정이 필요 없습니다.
+
+- **상태 파일 위치**: `dev/terraform.tfstate` 또는 `prod/terraform.tfstate`
+- **잠금 테이블**: `test-ddb-tf-lock`
 
 ### 사용 방법
 
