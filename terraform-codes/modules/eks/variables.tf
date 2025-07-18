@@ -99,3 +99,14 @@ variable "common_tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "capacity_type" {
+  description = "Type of capacity associated with the EKS Node Group. Valid values: ON_DEMAND, SPOT"
+  type        = string
+  default     = "ON_DEMAND"
+  
+  validation {
+    condition     = contains(["ON_DEMAND", "SPOT"], var.capacity_type)
+    error_message = "Capacity type must be either ON_DEMAND or SPOT"
+  }
+}

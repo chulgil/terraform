@@ -57,21 +57,3 @@ module "eks" {
     }
   )
 }
-
-
-# Outputs
-output "vpc_id" {
-  value = module.vpc.vpc_id
-}
-
-output "cluster_endpoint" {
-  value = module.eks.cluster_endpoint
-}
-
-output "cluster_name" {
-  value = "${var.environment}-eks-cluster"
-}
-
-output "node_group_arn" {
-  value = module.eks.node_group_arn
-}

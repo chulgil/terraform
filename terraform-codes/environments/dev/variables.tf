@@ -1,3 +1,9 @@
+variable "region" {
+  description = "AWS region to deploy resources"
+  type        = string
+  default     = "ap-northeast-2"
+}
+
 variable "environment" {
   description = "Environment name"
   type        = string

@@ -1,0 +1,164 @@
+@startuml
+!theme plain
+skinparam backgroundColor #f8f9fa
+skinparam rectangle {
+    BackgroundColor #ffffff
+    BorderColor #cccccc
+    FontColor #333333
+}
+
+skinparam package {
+    BackgroundColor #e3f2fd
+    BorderColor #1976d2
+    FontColor #1976d2
+}
+
+' External Components
+actor "User" as user
+cloud "Internet" as internet
+rectangle "Docker Registry" as docker_registry
+
+' VPC Components
+rectangle "VPC\n172.31.0.0/16" as vpc {
+    rectangle "Internet Gateway" as igw
+    
+    ' Public Subnet AZ1
+    package "Public Subnet 1\n172.31.0.0/20\nAZ: ap-northeast-2a" as pub_subnet1 {
+        rectangle "Bastion Server" as bastion #lightblue
+        rectangle "EKS Node Group 1" as nodegroup1 {
+            rectangle "Worker Node" as worker1 #lightgreen
+        }
+        rectangle "EKS Pods Subnet 1" as eks_pod1 #lightblue
+    }
+    
+    ' Public Subnet AZ2
+    package "Public Subnet 3\n172.31.16.0/20\nAZ: ap-northeast-2c" as pub_subnet2 {
+        rectangle "NAT Gateway" as nat_gw #pink
+        rectangle "ALB Listener" as alb_listener #lightblue
+        rectangle "Application Load Balancer" as alb #lightblue
+        rectangle "EKS Node Group 2" as nodegroup2 {
+            rectangle "Worker Node" as worker2 #lightgreen
+        }
+        rectangle "EKS Pods Subnet 2" as eks_pod2 #lightblue
+    }
+    
+    ' Private Subnet AZ1
+    package "Private Subnet 1\n172.31.32.0/20\nAZ: ap-northeast-2a" as priv_subnet1 {
+        rectangle "EKS Control Plane" as eks_control1 #orange
+        rectangle "API Server" as api_server #lightblue
+        rectangle "EKS Namespace" as eks_namespace1 {
+            rectangle "Ingress" as ingress1 #lightblue
+            rectangle "Service" as service1 #lightblue
+        }
+        rectangle "Pods (Containers)" as pods1 #lightpink
+    }
+    
+    ' Private Subnet AZ2
+    package "Private Subnet 3\n172.31.48.0/20\nAZ: ap-northeast-2c" as priv_subnet2 {
+        rectangle "EKS Control Plane" as eks_control2 #orange
+        rectangle "EKS Namespace" as eks_namespace2 {
+            rectangle "Ingress" as ingress2 #lightblue
+            rectangle "Service" as service2 #lightblue
+        }
+        rectangle "Pods (Containers)" as pods2 #lightpink
+    }
+    
+    ' Additional AWS Services
+    rectangle "S3 Bucket\n(Terraform State)" as s3 #lightblue
+    rectangle "DynamoDB\n(Terraform Lock)" as dynamodb #lightblue
+    
+    ' Security Groups
+    rectangle "Security Groups" as sgs {
+        rectangle "EKS Cluster SG" as sg_cluster #lightblue
+        rectangle "Node Group SG" as sg_node #lightgreen
+        rectangle "Pods SG" as sg_pods #lightpink
+    }
+}
+
+' External Connections
+user --> internet
+internet --> igw
+docker_registry --> internet
+
+' Internet Gateway Connections
+igw --> alb
+igw --> bastion
+
+' ALB Connections
+alb --> alb_listener
+alb_listener --> ingress1
+alb_listener --> ingress2
+
+' NAT Gateway Connections
+nat_gw --> priv_subnet1
+nat_gw --> priv_subnet2
+
+' EKS Control Plane Connections
+eks_control1 --> worker1
+eks_control2 --> worker2
+eks_control1 --> api_server
+
+' API Server Connections
+api_server --> eks_namespace1
+api_server --> eks_namespace2
+
+' Worker Node to Pods Connections
+worker1 --> eks_pod1
+worker2 --> eks_pod2
+eks_pod1 --> pods1
+eks_pod2 --> pods2
+
+' Security Group Connections
+sg_cluster --> sg_node
+sg_node --> sg_pods
+
+' Terraform State Management
+s3 --> eks_control1
+dynamodb --> eks_control1
+
+' Traffic Flow
+note right of user
+  <b>Inbound Traffic</b>
+  <color:red>Red Line</color>
+  <b>Outbound Traffic</b>
+  <color:blue>Blue Line</color>
+end note
+
+' Styling
+skinparam rectangle {
+    BackgroundColor #ffffff
+    BorderColor #333333
+    BorderThickness 1
+    Shadowing false
+}
+
+' Color coding
+skinparam rectangle<<pink>> {
+    BackgroundColor #ffcdd2
+    BorderColor #d32f2f
+}
+
+skinparam rectangle<<lightblue>> {
+    BackgroundColor #bbdefb
+    BorderColor #1976d2
+}
+
+skinparam rectangle<<lightgreen>> {
+    BackgroundColor #c8e6c9
+    BorderColor #388e3c
+}
+
+skinparam rectangle<<orange>> {
+    BackgroundColor #ffe0b2
+    BorderColor #f57c00
+}
+
+skinparam rectangle<<lightpink>> {
+    BackgroundColor #f8bbd0
+    BorderColor #c2185b
+}
+
+' Layout improvements
+top to bottom direction
+
+@enduml

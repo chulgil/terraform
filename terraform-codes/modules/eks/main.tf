@@ -40,6 +40,7 @@ resource "aws_eks_node_group" "node_group" {
   ami_type        = var.ami_type
   disk_size       = var.node_disk_size
   instance_types  = var.instance_types
+  capacity_type   = var.capacity_type
 
   scaling_config {
     desired_size = var.desired_size
@@ -62,8 +63,18 @@ resource "aws_eks_node_group" "node_group" {
     var.tags,
     {
       "kubernetes.io/cluster/${var.cluster_name}" = "owned"
+      "k8s.io/cluster-autoscaler/enabled"         = "true"
+      "k8s.io/cluster-autoscaler/${var.cluster_name}" = "owned"
     }
   )
+
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes = [
+      scaling_config[0].desired_size,
+      scaling_config[0].min_size
+    ]
+  }
 }
 
 # Kubernetes provider configuration
@@ -87,4 +98,25 @@ provider "kubernetes" {
   }
 }
 
-# Kubernetes 매니페스트는 이제 k8s-resources 모듈에서 관리됩니다.
+# 노드 보안 그룹 규칙
+resource "aws_security_group_rule" "node_ingress_self" {
+  description              = "Allow nodes to communicate with each other"
+  from_port                = 0
+  protocol                 = "-1"
+  security_group_id        = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
+  source_security_group_id = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
+  to_port                  = 0
+  type                     = "ingress"
+}
+
+resource "aws_security_group_rule" "node_egress_internet" {
+  description       = "Allow nodes to communicate with the internet"
+  from_port         = 0
+  protocol          = "-1"
+  security_group_id = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
+  cidr_blocks      = ["0.0.0.0/0"]
+  to_port           = 0
+  type              = "egress"
+}
+
+# 출력값 - outputs.tf로 이동됨
