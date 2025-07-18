@@ -1,0 +1,28 @@
+# Copy this file to terraform.tfvars and update the values as needed
+
+# Environment configuration
+environment = "prod"
+region     = "ap-northeast-2"
+
+# Network configuration
+vpc_cidr = "10.1.0.0/16"
+
+# Subnet configuration
+public_subnet_cidrs = [
+  "10.1.1.0/24",
+  "10.1.2.0/24"
+]
+
+private_subnet_cidrs = [
+  "10.1.3.0/24",
+  "10.1.4.0/24"
+]
+
+# EKS configuration
+kubernetes_version = "1.28"
+instance_types    = ["m5.large"]
+ami_type         = "AL2023_x86_64_STANDARD"  # Options: AL2023_x86_64_STANDARD, AL2023_ARM_64_STANDARD, BOTTLEROCKET_x86_64, etc.
+
+desired_size = 3
+max_size     = 5
+min_size     = 2
