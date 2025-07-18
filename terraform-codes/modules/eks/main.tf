@@ -41,6 +41,12 @@ resource "aws_eks_node_group" "node_group" {
   disk_size       = var.node_disk_size
   instance_types  = var.instance_types
   capacity_type   = var.capacity_type
+  
+  # Add launch template for better control over node configuration
+  launch_template {
+    id      = aws_launch_template.eks_nodes.id
+    version = "$Latest"
+  }
 
   scaling_config {
     desired_size = var.desired_size
@@ -57,6 +63,9 @@ resource "aws_eks_node_group" "node_group" {
     aws_iam_role_policy_attachment.node_AmazonEKSWorkerNodePolicy,
     aws_iam_role_policy_attachment.node_AmazonEKS_CNI_Policy,
     aws_iam_role_policy_attachment.node_AmazonEC2ContainerRegistryReadOnly,
+    # Add additional required policies
+    aws_iam_role_policy_attachment.node_AmazonSSMManagedInstanceCore,
+    aws_iam_role_policy_attachment.node_AmazonEC2RoleforSSM
   ]
 
   tags = merge(
@@ -65,6 +74,8 @@ resource "aws_eks_node_group" "node_group" {
       "kubernetes.io/cluster/${var.cluster_name}" = "owned"
       "k8s.io/cluster-autoscaler/enabled"         = "true"
       "k8s.io/cluster-autoscaler/${var.cluster_name}" = "owned"
+      # Add required tags for EKS
+      "k8s.io/cluster/${var.cluster_name}" = "owned"
     }
   )
 

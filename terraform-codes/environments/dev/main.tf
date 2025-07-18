@@ -45,10 +45,11 @@ module "eks" {
   max_size     = var.max_size
   min_size     = var.min_size
   
-  # ENI Config variables
+  # Network configuration
   region                     = var.region
   availability_zones         = var.availability_zones
   eniconfig_security_group_id = module.vpc.default_security_group_id
+  service_ipv4_cidr          = var.service_ipv4_cidr
   
   tags = merge(
     local.common_tags,

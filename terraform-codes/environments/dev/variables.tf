@@ -69,3 +69,20 @@ variable "min_size" {
   type        = number
   default     = 1
 }
+
+variable "service_ipv4_cidr" {
+  description = "The CIDR block to assign Kubernetes service IP addresses from. This should be a /16 CIDR block"
+  type        = string
+  default     = "172.20.0.0/16"
+  
+  validation {
+    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}/(1[6-9]|2[0-9]|3[0-2])$", var.service_ipv4_cidr))
+    error_message = "The service_ipv4_cidr must be a valid /16 to /32 CIDR block (e.g., 172.20.0.0/16)."
+  }
+}
+
+variable "key_name" {
+  description = "The key pair name that should be used for the EC2 instances in the EKS node group"
+  type        = string
+  default     = ""
+}
