@@ -98,25 +98,6 @@ provider "kubernetes" {
   }
 }
 
-# 노드 보안 그룹 규칙
-resource "aws_security_group_rule" "node_ingress_self" {
-  description              = "Allow nodes to communicate with each other"
-  from_port                = 0
-  protocol                 = "-1"
-  security_group_id        = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
-  source_security_group_id = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
-  to_port                  = 0
-  type                     = "ingress"
-}
-
-resource "aws_security_group_rule" "node_egress_internet" {
-  description       = "Allow nodes to communicate with the internet"
-  from_port         = 0
-  protocol          = "-1"
-  security_group_id = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
-  cidr_blocks      = ["0.0.0.0/0"]
-  to_port           = 0
-  type              = "egress"
-}
+# EKS는 자동으로 필요한 보안 그룹 규칙을 생성하므로, 수동으로 추가할 필요가 없습니다.
 
 # 출력값 - outputs.tf로 이동됨
