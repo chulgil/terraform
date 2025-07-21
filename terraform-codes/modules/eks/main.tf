@@ -37,9 +37,7 @@ resource "aws_eks_node_group" "node_group" {
   node_group_name = coalesce(var.node_group_name, "${var.cluster_name}-node-group")
   node_role_arn   = aws_iam_role.node.arn
   subnet_ids      = var.private_subnet_ids
-  ami_type        = var.ami_type
-  disk_size       = var.node_disk_size
-  instance_types  = var.instance_types
+  ami_type        = "CUSTOM"
   capacity_type   = var.capacity_type
   
   # Add launch template for better control over node configuration
@@ -71,11 +69,11 @@ resource "aws_eks_node_group" "node_group" {
   tags = merge(
     var.tags,
     {
-      "kubernetes.io/cluster/${var.cluster_name}" = "owned"
-      "k8s.io/cluster-autoscaler/enabled"         = "true"
-      "k8s.io/cluster-autoscaler/${var.cluster_name}" = "owned"
+      "kubernetes-io-cluster-${var.cluster_name}" = "owned"
+      "k8s-io-cluster-autoscaler-enabled"         = "true"
+      "k8s-io-cluster-autoscaler-${var.cluster_name}" = "owned"
       # Add required tags for EKS
-      "k8s.io/cluster/${var.cluster_name}" = "owned"
+      "k8s-io-cluster-${var.cluster_name}" = "owned"
     }
   )
 
@@ -143,7 +141,7 @@ resource "aws_security_group" "worker_nodes" {
     var.tags,
     {
       Name = "${var.cluster_name}-worker-nodes-sg"
-      "kubernetes.io/cluster/${var.cluster_name}" = "owned"
+      "kubernetes-io-cluster-${var.cluster_name}" = "owned"
     }
   )
 }

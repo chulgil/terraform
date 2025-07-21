@@ -3,6 +3,7 @@
 ## Network Diagram
 
 ![AWS Network Architecture](img/aws_network2.png)
+[AWS Network Architecture](docs/plantuml/aws_network2.plantuml)
 
 ## Bastion Server Overview
 
@@ -154,3 +155,81 @@ spec:
 - Bastion 서버를 통한 SSH 접근만 허용
 - IAM 정책을 통한 세분화된 권한 관리
 - 네트워크 ACL을 통한 추가적인 보안 계층 구성
+
+
+### 사전 준비사항 #1
+
+1. Terraform Backend 구성
+- S3 Bucket 및 DynamoDB Table 생성
+
+2. AWS Network 구성
+- VPC 1개, Internet Gateway 1개
+- Public Subnet 2개, Private Subnet 2개
+- Public Subnet Route Table 2개
+- NAT Gateway 1개
+- Private Subnet Route Table 2개
+
+3. Bastion Server구성
+- ec2 VM 1개, security group 1개
+- key-pair 1개, iam role 1개
+
+4. AWS EKS 구성
+- EKS Cluster 1개, EKS NodeGroup1개(2개 Worker Node 생성)
+- Bastion Server에서 EKS Kubeconfig 설정
+- Bastion Server에서 EKS 접속
+
+5. AWS ALB Controller 설치
+- IAM Policy 및 서비스 어카운트 생성
+- cert-manger 설치
+- AWS ALB Controller 설치
+
+
+--- 
+
+## 배포
+
+### 1. Namespace 구성 및 예제 Deployments 배포(K8s Manifest)
+
+1.1 Namespace 구성 명령어
+$ kubectl create namespace test-service-nlb
+
+1.2 예제 Deployments 배포
+- K8s Manifest 경로 : k8s-manifests
+- K8s Manifest 배포 명령어 : kubectl create ‒f test-deployment-nginx.yaml
+
+### 2. Service Annotation 설정 및 Service 배포
+
+2.1 Service Annotation 설정
+- K8s Manifest 경로 : k8s-manifests
+- 파일 설정 위치 : test-service.yaml
+- Service Annotation 설정내역
+
+
+
+
+```bash
+annotations:
+service.beta.kubernetes.io/aws-load-balancer-type: external
+service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+service.beta.kubernetes.io /subnets: <Public Subnet1 ID>, <Public Subnet2 ID>
+```
+
+2.2 Service 배포
+- K8s Manifest 경로 : k8s-manifests
+- K8s Manifest 배포 명령어 : kubectl create ‒f test-service.yaml
+
+## 3. Network Load Balancer
+
+### 3.1 Network Load Balancer(NLB) 자동 생성 확인
+- AWS Managemgnt Console 확인 경로 : EC2 > 로드밸런서
+- 확인내용
+* 유형 : network
+* 체계 : internet-facing
+* IP 주소 유형 : ipv4
+* 가용 영역 : <Public Subnet1 ID>, <Public Subnet2 ID>
+
+### 3.2 로컬 PC 웹브라우저로 접속 확인
+- NLB DNS 주소 확인 : 로컬 PC 웹브라우저에서 다음의 URL로 접속 확인
+http://<NLB DNS 주소 확인>:80
+

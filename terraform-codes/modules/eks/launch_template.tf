@@ -52,10 +52,10 @@ resource "aws_launch_template" "eks_nodes" {
     tags = merge(
       var.tags,
       {
-        Name                                        = "${var.cluster_name}-node"
-        "kubernetes.io/cluster/${var.cluster_name}" = "owned"
-        "k8s.io/cluster-autoscaler/enabled"         = "true"
-        "k8s.io/cluster-autoscaler/${var.cluster_name}" = "owned"
+        Name                                              = "${var.cluster_name}-node"
+        "kubernetes-io-cluster-${var.cluster_name}"      = "owned"
+        "k8s-io-cluster-autoscaler-enabled"              = "true"
+        "k8s-io-cluster-autoscaler-${var.cluster_name}"  = "owned"
       }
     )
   }

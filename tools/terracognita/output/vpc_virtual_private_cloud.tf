@@ -31,12 +31,12 @@ resource "aws_subnet" "k8s_subnet_private2_ap_northeast_2b" {
 resource "aws_subnet" "k8s_subnet_public1_ap_northeast_2a" {
   tags = {
     Name                                     = "k8s-subnet-public1-ap-northeast-2a"
-    "kubernetes.io/cluster/test-eks-cluster" = "shared"
+    "kubernetes.io-cluster-test-eks-cluster" = "shared"
   }
 
   tags_all = {
     Name                                     = "k8s-subnet-public1-ap-northeast-2a"
-    "kubernetes.io/cluster/test-eks-cluster" = "shared"
+    "kubernetes.io-cluster-test-eks-cluster" = "shared"
   }
 
   availability_zone                   = "ap-northeast-2a"
@@ -48,12 +48,12 @@ resource "aws_subnet" "k8s_subnet_public1_ap_northeast_2a" {
 resource "aws_subnet" "k8s_subnet_public2_ap_northeast_2b" {
   tags = {
     Name                                     = "k8s-subnet-public2-ap-northeast-2b"
-    "kubernetes.io/cluster/test-eks-cluster" = "shared"
+    "kubernetes.io-cluster-test-eks-cluster" = "shared"
   }
 
   tags_all = {
     Name                                     = "k8s-subnet-public2-ap-northeast-2b"
-    "kubernetes.io/cluster/test-eks-cluster" = "shared"
+    "kubernetes.io-cluster-test-eks-cluster" = "shared"
   }
 
   availability_zone                   = "ap-northeast-2b"

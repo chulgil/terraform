@@ -58,7 +58,7 @@ spec:
           runAsUser: 0
           allowPrivilegeEscalation: false
           capabilities:
-            drop: ["ALL"]
+            drop: [ "ALL" ]
       terminationGracePeriodSeconds: 30
       volumes:
       - name: varlog

@@ -58,7 +58,7 @@ module "eks" {
   tags = merge(
     local.common_tags,
     {
-      "kubernetes.io/cluster/${var.environment}-eks-cluster" = "shared"
+      "kubernetes.io-cluster-${var.environment}-eks-cluster" = "shared"
     }
   )
 }
