@@ -150,23 +150,6 @@ variable "region" {
 }
 
 variable "service_ipv4_cidr" {
-  description = "The CIDR block to assign Kubernetes service IP addresses from"
-  type        = string
-  default     = "172.20.0.0/16"
-  
-  validation {
-    condition     = can(cidrhost(var.service_ipv4_cidr, 0))
-    error_message = "Service IPv4 CIDR must be a valid CIDR block."
-  }
-}
-
-variable "common_tags" {
-  description = "Common tags to be applied to all resources"
-  type        = map(string)
-  default     = {}
-}
-
-variable "service_ipv4_cidr" {
   description = "The CIDR block to assign Kubernetes service IP addresses from. This should be a /16 CIDR block (e.g., 172.20.0.0/16)"
   type        = string
   default     = "172.20.0.0/16"
@@ -177,16 +160,10 @@ variable "service_ipv4_cidr" {
   }
 }
 
-variable "key_name" {
-  description = "The key pair name that should be used for the EC2 instances in the EKS node group"
-  type        = string
-  default     = ""
-}
-
-variable "ami_id" {
-  description = "Custom AMI ID to use for the EKS worker nodes. If not provided, it will try to find the latest EKS-optimized AMI."
-  type        = string
-  default     = ""
+variable "common_tags" {
+  description = "Common tags to be applied to all resources"
+  type        = map(string)
+  default     = {}
 }
 
 variable "vpc_id" {

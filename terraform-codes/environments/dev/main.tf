@@ -47,10 +47,6 @@ module "eks" {
   
   # Network configuration
   region                     = var.region
-  availability_zones         = var.availability_zones
-  eniconfig_security_group_id = module.vpc.default_security_group_id
-  service_ipv4_cidr          = var.service_ipv4_cidr
-  
   service_ipv4_cidr          = var.service_ipv4_cidr
   vpc_id                     = module.vpc.vpc_id
   

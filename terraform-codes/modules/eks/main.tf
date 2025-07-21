@@ -109,6 +109,43 @@ provider "kubernetes" {
   }
 }
 
-# EKS는 자동으로 필요한 보안 그룹 규칙을 생성하므로, 수동으로 추가할 필요가 없습니다.
+# Security Group for EKS Worker Nodes
+resource "aws_security_group" "worker_nodes" {
+  name_prefix = "${var.cluster_name}-worker-nodes-"
+  description = "Security group for EKS worker nodes"
+  vpc_id      = var.vpc_id
+
+  # Allow all outbound traffic
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow inbound traffic from the cluster security group
+  ingress {
+    from_port       = 0
+    to_port         = 65535
+    protocol        = "tcp"
+    security_groups = [aws_eks_cluster.main.vpc_config[0].cluster_security_group_id]
+  }
+
+  # Allow worker nodes to communicate with each other
+  ingress {
+    from_port = 0
+    to_port   = 65535
+    protocol  = "tcp"
+    self      = true
+  }
+
+  tags = merge(
+    var.tags,
+    {
+      Name = "${var.cluster_name}-worker-nodes-sg"
+      "kubernetes.io/cluster/${var.cluster_name}" = "owned"
+    }
+  )
+}
 
 # 출력값 - outputs.tf로 이동됨

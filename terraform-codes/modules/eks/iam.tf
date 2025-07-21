@@ -72,17 +72,6 @@ resource "aws_iam_role_policy_attachment" "node_AmazonEC2RoleforSSM" {
   role       = aws_iam_role.node.name
 }
 
-# Additional required policies for EKS nodes
-resource "aws_iam_role_policy_attachment" "node_AmazonSSMManagedInstanceCore" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-  role       = aws_iam_role.node.name
-}
-
-resource "aws_iam_role_policy_attachment" "node_AmazonEC2RoleforSSM" {
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
-  role       = aws_iam_role.node.name
-}
-
 # IAM Instance Profile for EKS nodes
 resource "aws_iam_instance_profile" "node" {
   name = "${var.cluster_name}-node-instance-profile"
