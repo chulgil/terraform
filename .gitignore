@@ -93,3 +93,10 @@ google/
 
 # Deployment logs
 /logs/deploy_*.log
+
+# Deployment logs
+/logs/deploy_*.log
+**/logs/deploy_*.log
+**/logs/*.log
+logs/
+*.log

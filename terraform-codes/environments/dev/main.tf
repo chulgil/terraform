@@ -51,6 +51,14 @@ module "eks" {
   eniconfig_security_group_id = module.vpc.default_security_group_id
   service_ipv4_cidr          = var.service_ipv4_cidr
   
+  service_ipv4_cidr          = var.service_ipv4_cidr
+  vpc_id                     = module.vpc.vpc_id
+  
+  # AMI configuration
+  ami_id                     = var.ami_id
+  
+  # Tags
+  common_tags = local.common_tags
   tags = merge(
     local.common_tags,
     {

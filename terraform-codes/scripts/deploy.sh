@@ -1,27 +1,52 @@
 #!/bin/bash
-
-# Set error handling
-set -e
+set -euo pipefail
 
 # Get script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# Environment setup
-ENV=${1:-dev}
+# Set environment (default to dev if not provided)
+ENV="${1:-dev}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+# Set up logging
 LOG_DIR="${PROJECT_ROOT}/logs"
+mkdir -p "${LOG_DIR}"
 LOG_FILE="${LOG_DIR}/deploy_${ENV}_${TIMESTAMP}.log"
 PID_FILE="/tmp/terraform_deploy_${ENV}.pid"
-
-# Create logs directory if it doesn't exist
-mkdir -p "${LOG_DIR}"
 
 # Function to log messages
 log() {
   local timestamp
   timestamp=$(date '+%Y-%m-%d %H:%M:%S')
   echo "[${timestamp}] $1" | tee -a "${LOG_FILE}"
+}
+
+
+
+# Function to clean up Terraform provider cache
+cleanup_terraform_providers() {
+  log "Cleaning up Terraform provider cache..."
+  local cache_dirs=(
+    "${PWD}/.terraform/providers"
+    "${PWD}/.terraform/plugins"
+    "${HOME}/.terraform.d/plugin-cache"
+    "${HOME}/.terraform.d/providers"
+    "${HOME}/.terraform.d/plugin-cache/darwin_arm64"
+    "${HOME}/.terraform.d/plugin-cache/registry.terraform.io/hashicorp/aws"
+  )
+  
+  for dir in "${cache_dirs[@]}"; do
+    if [ -d "${dir}" ]; then
+      log "Removing directory: ${dir}"
+      rm -rf "${dir}" 2>/dev/null || true
+    fi
+  done
+  
+  # Remove lock files
+  rm -f "${PWD}/.terraform.lock.hcl" 2>/dev/null || true
+  
+  log "Terraform provider cache cleanup complete."
 }
 
 # Function to clean up on exit
@@ -68,28 +93,174 @@ if [ ! -f "${PROJECT_ROOT}/environments/${ENV}/terraform.tfvars" ]; then
   exit 1
 fi
 
-# Change to environment directory
-cd "${PROJECT_ROOT}/environments/${ENV}"
+# Set environment directory
+ENV_DIR="${PROJECT_ROOT}/environments/${ENV}"
 
-# Function to run terraform commands with logging
+# Validate environment directory
+if [ ! -d "${ENV_DIR}" ]; then
+  log "Error: Environment directory not found: ${ENV_DIR}"
+  exit 1
+fi
+
+# Change to environment directory
+cd "${ENV_DIR}" || { log "Failed to change to environment directory: ${ENV_DIR}"; exit 1; }
+
+# Function to run Terraform commands with enhanced logging
 run_terraform() {
   local command=$1
-  local step=$2
-  log "Starting ${step}..."
+  local target=${2:-}
+  local retries=3
+  local count=0
+  local success=0
   
-  # Run terraform command with nohup in background
-  nohup bash -c "
-    set -e
-    terraform ${command} 2>&1 | 
-    while IFS= read -r line; do 
-      echo \"[$(date '+%Y-%m-%d %H:%M:%S')] ${step}: \$line\" >> \"${LOG_FILE}\"
-      echo \"${step}: \$line\"
-    done
-    echo \"[$(date '+%Y-%m-%d %H:%M:%S')] ${step} completed with status: \$?\" >> \"${LOG_FILE}\"
-  " > /dev/null 2>&1 &
+  log "Running: terraform $command $target in $(pwd)"
   
-  local pid=$!
-  echo "${pid}" > "${PID_FILE}"
+  # Clean up any existing provider cache before initialization
+  cleanup_terraform_providers
+  
+  # Initialize Terraform if needed
+  if [ ! -d ".terraform" ] || [ "$command" == "init" ]; then
+    log "Initializing Terraform..."
+    
+    # Create a temporary provider configuration if it doesn't exist
+    if [ ! -f "provider.tf" ]; then
+      cat > provider.tf <<- 'EOT'
+      terraform {
+        required_providers {
+          aws = {
+            source  = "hashicorp/aws"
+            version = "~> 5.0"
+          }
+        }
+      }
+      EOT
+    fi
+    
+    # Initialize with plugin cache disabled
+    TF_PLUGIN_CACHE_DIR="" terraform init -input=false -no-color -upgrade || {
+      log "Terraform initialization failed, retrying with -reconfigure..."
+      TF_PLUGIN_CACHE_DIR="" terraform init -reconfigure -input=false -no-color -upgrade || {
+        log "Terraform initialization failed after retry"
+        return 1
+      }
+    }
+  fi
+  
+  # For init command, we're already done
+  if [ "$command" == "init" ]; then
+    return 0
+  fi
+  
+  # Run the Terraform command with retries
+  while [ $count -lt $retries ]; do
+    log "Attempt $((count + 1)) of $retries"
+    
+    # Run the command directly without capturing output to avoid buffering issues
+    if [ -n "$target" ]; then
+      if ! terraform "$command" -input=false -no-color "$target"; then
+        log "Command failed with exit code $?"
+      else
+        success=1
+        break
+      fi
+    else
+      if ! terraform "$command" -input=false -no-color; then
+        log "Command failed with exit code $?"
+      else
+        success=1
+        break
+      fi
+    fi
+    
+    if [ $count -lt $((retries - 1)) ]; then
+      log "Retrying in 10 seconds..."
+      sleep 10
+    fi
+    count=$((count + 1))
+  done
+  
+  if [ $success -eq 0 ]; then
+    log "Command failed after $retries attempts"
+    # Try to get more detailed error information
+    log "Last 20 lines of terraform output:"
+    tail -n 20 "${LOG_FILE}" | while IFS= read -r line; do log "$line"; done
+    return 1
+  fi
+  
+  return 0
+}
+
+# Function to collect EKS diagnostic information
+collect_eks_diagnostics() {
+  log "=== Collecting EKS Diagnostics ==="
+  
+  # Get cluster name from Terraform state
+  local cluster_name
+  cluster_name=$(cd "${ENV_DIR}" && terraform output -raw cluster_name 2>/dev/null || echo "dev-eks-cluster")
+  
+  log "Cluster Name: $cluster_name"
+  
+  # Get EKS node groups
+  log "\n=== EKS Node Groups ==="
+  aws eks list-nodegroups --cluster-name "$cluster_name" --region ap-northeast-2 >> "${LOG_FILE}" 2>&1 || true
+  
+  # Get node group status
+  local nodegroup
+  nodegroup=$(aws eks list-nodegroups --cluster-name "$cluster_name" --region ap-northeast-2 --query 'nodegroups[0]' --output text 2>/dev/null || true)
+  
+  if [ -n "$nodegroup" ]; then
+    log "\n=== Node Group Status ==="
+    aws eks describe-nodegroup --cluster-name "$cluster_name" --nodegroup-name "$nodegroup" --region ap-northeast-2 >> "${LOG_FILE}" 2>&1 || true
+    
+    # Get instance IDs from the node group
+    log "\n=== Node Group Instances ==="
+    local instance_ids
+    instance_ids=$(aws ec2 describe-instances \
+      --filters "Name=tag:aws:eks:cluster-name,Values=$cluster_name" \
+      --query 'Reservations[].Instances[].InstanceId' \
+      --region ap-northeast-2 \
+      --output text 2>/dev/null || true)
+    
+    if [ -n "$instance_ids" ]; then
+      log "Instance IDs: $instance_ids"
+      
+      # Get instance status
+      log "\n=== Instance Status ==="
+      for instance_id in $instance_ids; do
+        log "\nInstance: $instance_id"
+        aws ec2 describe-instance-status --instance-ids "$instance_id" --region ap-northeast-2 >> "${LOG_FILE}" 2>&1 || true
+        
+        # Get console output (last 64KB)
+        log "\n=== Console Output (last 64KB) ==="
+        aws ec2 get-console-output --instance-id "$instance_id" --region ap-northeast-2 --output text >> "${LOG_FILE}" 2>&1 || true
+      done
+    fi
+  fi
+  
+  # Get EKS cluster logs
+  log "\n=== EKS Cluster Logs ==="
+  local log_group="/aws/eks/$cluster_name/cluster"
+  if aws logs describe-log-groups --log-group-name-prefix "$log_group" --query 'logGroups[].logGroupName' --output text | grep -q "$log_group"; then
+    local log_stream
+    log_stream=$(aws logs describe-log-streams \
+      --log-group-name "$log_group" \
+      --order-by LastEventTime \
+      --descending \
+      --max-items 1 \
+      --query 'logStreams[0].logStreamName' \
+      --output text 2>/dev/null || true)
+    
+    if [ -n "$log_stream" ] && [ "$log_stream" != "None" ]; then
+      log "\nLatest logs from $log_stream:"
+      aws logs get-log-events \
+        --log-group-name "$log_group" \
+        --log-stream-name "$log_stream" \
+        --limit 50 \
+        --region ap-northeast-2 >> "${LOG_FILE}" 2>&1 || true
+    fi
+  fi
+  
+  log "=== End of Diagnostics ===\n"
   wait "${pid}" || {
     log "${step} failed. Check ${LOG_FILE} for details."
     exit 1
@@ -113,8 +284,9 @@ terraform plan -out=tfplan -input=false | tee -a "${LOG_FILE}" || {
 }
 
 # Ask for confirmation
-read -p "Do you want to apply these changes? (y/n) " -n 1 -r
-echo
+log "Plan completed. Review the plan above."
+log "Do you want to apply these changes? (y/n)"
+read -p "Apply changes? (y/n): " -r
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
   log "Deployment cancelled by user."
   exit 0

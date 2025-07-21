@@ -58,34 +58,49 @@ variable "min_size" {
   description = "Minimum number of worker nodes"
   type        = number
   default     = 1
+  
+  validation {
+    condition     = var.min_size >= 0
+    error_message = "Min size must be 0 or greater."
+  }
 }
 
-variable "node_group_name" {
-  description = "Name of the EKS Node Group"
+# Security Configuration
+variable "key_name" {
+  description = "The key pair name that should be used for the instance"
   type        = string
   default     = ""
 }
 
-variable "node_disk_size" {
-  description = "Size of the disk attached to each worker node (in GB)"
-  type        = number
-  default     = 20
-}
-
-variable "region" {
-  description = "AWS region where the EKS cluster will be created"
+variable "ami_id" {
+  description = "The AMI ID to use for the worker nodes. If not provided, the latest EKS-optimized AMI will be used automatically."
   type        = string
+  default     = ""
 }
 
-variable "availability_zones" {
-  description = "List of availability zones for the EKS cluster"
-  type        = list(string)
-  default     = ["ap-northeast-2a", "ap-northeast-2b"]
+# Additional Configuration
+variable "enable_irsa" {
+  description = "Whether to create an OpenID Connect Provider for EKS to enable IRSA"
+  type        = bool
+  default     = true
 }
 
-variable "eniconfig_security_group_id" {
-  description = "Security group ID to be used in ENI Config"
-  type        = string
+variable "enable_cluster_autoscaler" {
+  description = "Whether to enable cluster autoscaler add-on"
+  type        = bool
+  default     = true
+}
+
+variable "enable_metrics_server" {
+  description = "Whether to enable metrics server add-on"
+  type        = bool
+  default     = true
+}
+
+variable "enable_cloudwatch_container_insights" {
+  description = "Whether to enable CloudWatch Container Insights"
+  type        = bool
+  default     = true
 }
 
 variable "tags" {
@@ -94,8 +109,59 @@ variable "tags" {
   default     = {}
 }
 
+# Launch Template Configuration
+variable "node_disk_size" {
+  description = "Disk size in GiB for worker nodes"
+  type        = number
+  default     = 20
+  
+  validation {
+    condition     = var.node_disk_size >= 20
+    error_message = "Node disk size must be at least 20 GiB."
+  }
+}
+
+variable "ebs_iops" {
+  description = "The amount of IOPS to provision for the disk"
+  type        = number
+  default     = 3000
+  
+  validation {
+    condition     = var.ebs_iops >= 3000 && var.ebs_iops <= 16000
+    error_message = "EBS IOPS must be between 3000 and 16000."
+  }
+}
+
+variable "ebs_throughput" {
+  description = "The throughput to provision for the disk in MiB/s"
+  type        = number
+  default     = 125
+  
+  validation {
+    condition     = var.ebs_throughput >= 125 && var.ebs_throughput <= 1000
+    error_message = "EBS throughput must be between 125 and 1000 MiB/s."
+  }
+}
+
+variable "region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-west-2"
+}
+
+variable "service_ipv4_cidr" {
+  description = "The CIDR block to assign Kubernetes service IP addresses from"
+  type        = string
+  default     = "172.20.0.0/16"
+  
+  validation {
+    condition     = can(cidrhost(var.service_ipv4_cidr, 0))
+    error_message = "Service IPv4 CIDR must be a valid CIDR block."
+  }
+}
+
 variable "common_tags" {
-  description = "Common tags for all resources"
+  description = "Common tags to be applied to all resources"
   type        = map(string)
   default     = {}
 }
@@ -123,6 +189,17 @@ variable "ami_id" {
   default     = ""
 }
 
+variable "vpc_id" {
+  description = "ID of the VPC where the cluster and workers will be deployed"
+  type        = string
+}
+
+variable "node_group_name" {
+  description = "Name of the EKS node group"
+  type        = string
+  default     = ""
+}
+
 variable "capacity_type" {
   description = "Type of capacity associated with the EKS Node Group. Valid values: ON_DEMAND, SPOT"
   type        = string
@@ -130,6 +207,32 @@ variable "capacity_type" {
   
   validation {
     condition     = contains(["ON_DEMAND", "SPOT"], var.capacity_type)
-    error_message = "Capacity type must be either ON_DEMAND or SPOT"
+    error_message = "Capacity type must be either ON_DEMAND or SPOT."
   }
+}
+
+# KMS Key Configuration
+variable "create_kms_key" {
+  description = "Whether to create a KMS key for EKS encryption"
+  type        = bool
+  default     = true
+}
+
+variable "kms_key_arn" {
+  description = "The ARN of the KMS key to use for EKS encryption. If not provided, a new key will be created"
+  type        = string
+  default     = ""
+}
+
+# Logging Configuration
+variable "enabled_cluster_log_types" {
+  description = "A list of the desired control plane logging to enable"
+  type        = list(string)
+  default = [
+    "api",
+    "audit",
+    "authenticator",
+    "controllerManager",
+    "scheduler"
+  ]
 }
