@@ -31,6 +31,36 @@ variable "instance_types" {
   default     = ["t3.medium"]
 }
 
+variable "enable_ipv6" {
+  description = "Whether to enable IPv6 networking"
+  type        = bool
+  default     = false
+}
+
+variable "node_labels" {
+  description = "Map of Kubernetes labels to apply to nodes"
+  type        = map(string)
+  default     = {}
+}
+
+variable "node_taints" {
+  description = "List of Kubernetes taints to apply to nodes"
+  type        = list(string)
+  default     = []
+}
+
+variable "enable_irsa" {
+  description = "Whether to create IAM roles for service accounts (IRSA) for the cluster"
+  type        = bool
+  default     = true
+}
+
+variable "use_max_pods" {
+  description = "Whether to use the maximum number of pods per node"
+  type        = bool
+  default     = true
+}
+
 variable "ami_type" {
   description = "Type of Amazon Machine Image (AMI) associated with the EKS Node Group. Defaults to AL2023"
   type        = string
@@ -79,12 +109,6 @@ variable "ami_id" {
 }
 
 # Additional Configuration
-variable "enable_irsa" {
-  description = "Whether to create an OpenID Connect Provider for EKS to enable IRSA"
-  type        = bool
-  default     = true
-}
-
 variable "enable_cluster_autoscaler" {
   description = "Whether to enable cluster autoscaler add-on"
   type        = bool

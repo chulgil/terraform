@@ -1,13 +1,21 @@
-# Get the latest EKS-optimized AMI using SSM Parameter Store (recommended by AWS)
-data "aws_ssm_parameter" "eks_ami_id" {
-  count = var.ami_id == "" ? 1 : 0
-  name  = "/aws/service/eks/optimized-ami/${var.kubernetes_version}/amazon-linux-2023/x86_64/standard/recommended/image_id"
+# Get the latest EKS-optimized AL2023 AMI for Kubernetes 1.33
+data "aws_ssm_parameter" "eks_ami" {
+  name = "/aws/service/eks/optimized-ami/1.33/amazon-linux-2023/x86_64/standard/recommended/image_id"
+  
+  # Ensure the parameter exists before trying to use it
+  lifecycle {
+    postcondition {
+      condition     = self != null
+      error_message = "Failed to retrieve EKS optimized AL2023 AMI for Kubernetes version 1.33. Please check if the AMI is available in your region."
+    }
+  }
 }
 
 # Launch template for EKS nodes
 resource "aws_launch_template" "eks_nodes" {
   name_prefix   = "${var.cluster_name}-nodes-"
-  image_id      = var.ami_id != "" ? var.ami_id : data.aws_ssm_parameter.eks_ami_id[0].value
+  # Always use the latest EKS-optimized AMI from SSM Parameter Store
+  image_id      = data.aws_ssm_parameter.eks_ami.value
   instance_type = var.instance_types[0]
   key_name      = var.key_name
   user_data     = base64encode(local.eks_node_userdata)
@@ -78,11 +86,28 @@ resource "aws_launch_template" "eks_nodes" {
 
 # User data for EKS nodes
 locals {
+  # Convert node_labels map to string format for bash
+  node_labels_string = var.node_labels == null ? "" : join(
+    ",", 
+    [for k, v in var.node_labels : "${k}=${v}"]
+  )
+  
+  # Join taints with commas
+  taints_string = var.node_taints == null ? "" : join(",", var.node_taints)
+  
+  # Build kubelet extra args
+  kubelet_extra_args = join(" ", compact([
+    length(local.node_labels_string) > 0 ? "--node-labels=${local.node_labels_string}" : "",
+    length(local.taints_string) > 0 ? "--register-with-taints=${local.taints_string}" : ""
+  ]))
+  
   eks_node_userdata = <<-USERDATA
   #!/bin/bash
   set -o xtrace
+  exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
   
-  # Set container runtime to containerd
+  # For AL2023, containerd is already installed and configured by default
+  # Just ensure it's running with the correct cgroup driver
   cat <<-EOF > /etc/containerd/config.toml
   version = 2
   [plugins]
@@ -95,17 +120,38 @@ locals {
             SystemdCgroup = true
   EOF
   
-  # Restart containerd
+  # Restart containerd with new config
   systemctl restart containerd
   
-  # Bootstrap the EKS node
+  # Configure kubelet for AL2023
+  mkdir -p /etc/systemd/system/kubelet.service.d
+  cat <<-EOF > /etc/systemd/system/kubelet.service.d/10-eksclt.al2023.conf
+  [Service]
+  Environment="KUBELET_EXTRA_ARGS=--node-ip=$(hostname -i) --cloud-provider=aws"
+  EOF
+  
+  # Enable and start kubelet
+  systemctl enable --now kubelet
+  
+  # Create bootstrap script with node labels and taints if needed
+  cat <<-EOF > /etc/eks/bootstrap.sh
+  #!/bin/bash
+  set -e
+  
+  # Standard EKS bootstrap script for AL2023
   /etc/eks/bootstrap.sh ${var.cluster_name} \
-    --kubelet-extra-args '--node-labels=nodegroup-type=standard,environment=${var.environment},node.kubernetes.io/role=worker,kubernetes.io/role=worker' \
     --container-runtime containerd \
     --dns-cluster-ip ${cidrhost(var.service_ipv4_cidr, 10)} \
-    --use-max-pods false \
+    --use-max-pods ${var.use_max_pods ? "true" : "false"} \
     --b64-cluster-ca ${aws_eks_cluster.main.certificate_authority[0].data} \
-    --apiserver-endpoint ${aws_eks_cluster.main.endpoint}
+    --apiserver-endpoint ${aws_eks_cluster.main.endpoint} \
+    ${length(local.kubelet_extra_args) > 0 ? "--kubelet-extra-args \"${local.kubelet_extra_args}\"" : ""}
+  EOF
+  
+  chmod +x /etc/eks/bootstrap.sh
+  
+  # Run the bootstrap script
+  /etc/eks/bootstrap.sh
   
   # Ensure kubelet is running
   systemctl enable kubelet

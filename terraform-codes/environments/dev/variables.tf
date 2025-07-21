@@ -92,3 +92,78 @@ variable "ami_id" {
   type        = string
   default     = ""
 }
+
+# Bastion Host Variables
+variable "bastion_instance_type" {
+  description = "Instance type for the bastion host"
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "bastion_key_name" {
+  description = "Key pair name for the bastion host"
+  type        = string
+  default     = ""
+}
+
+variable "project_name" {
+  description = "Name of the project, used for resource naming"
+  type        = string
+  default     = "eks-cluster"
+}
+
+# ALB Controller Variables
+variable "alb_controller_version" {
+  description = "Version of the AWS Load Balancer Controller"
+  type        = string
+  default     = "v2.4.2"
+}
+
+variable "alb_controller_chart_version" {
+  description = "Version of the AWS Load Balancer Controller Helm chart"
+  type        = string
+  default     = "1.4.1"
+}
+
+# Cert-Manager Variables
+variable "letsencrypt_email" {
+  description = "Email address for Let's Encrypt account registration"
+  type        = string
+  default     = "admin@example.com"
+}
+
+variable "enable_route53_issuer" {
+  description = "Whether to enable the Route53 DNS01 ClusterIssuer for cert-manager"
+  type        = bool
+  default     = false
+}
+
+variable "route53_hosted_zone_id" {
+  description = "The Route53 hosted zone ID to use for DNS01 validation"
+  type        = string
+  default     = ""
+}
+
+variable "create_test_certificate" {
+  description = "Whether to create a test certificate to verify cert-manager is working"
+  type        = bool
+  default     = false
+}
+
+variable "test_certificate_namespace" {
+  description = "Namespace to create the test certificate in"
+  type        = string
+  default     = "default"
+}
+
+variable "test_certificate_issuer" {
+  description = "Issuer to use for the test certificate"
+  type        = string
+  default     = "letsencrypt-staging"
+}
+
+variable "test_certificate_domain" {
+  description = "Domain to include in the test certificate"
+  type        = string
+  default     = "example.com"
+}

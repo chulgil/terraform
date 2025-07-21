@@ -72,6 +72,18 @@ resource "aws_iam_role_policy_attachment" "node_AmazonEC2RoleforSSM" {
   role       = aws_iam_role.node.name
 }
 
+# Additional policies for EKS nodes to access AWS services
+resource "aws_iam_role_policy_attachment" "node_AmazonEKSVPCResourceController" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSVPCResourceController"
+  role       = aws_iam_role.node.name
+}
+
+resource "aws_iam_role_policy_attachment" "node_AmazonEKS_CNI_IPv6_Policy" {
+  count      = var.enable_ipv6 ? 1 : 0
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_IPv6_Policy"
+  role       = aws_iam_role.node.name
+}
+
 # IAM Instance Profile for EKS nodes
 resource "aws_iam_instance_profile" "node" {
   name = "${var.cluster_name}-node-instance-profile"
