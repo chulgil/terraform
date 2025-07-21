@@ -4,6 +4,18 @@ variable "region" {
   default     = "ap-northeast-2"
 }
 
+variable "create_eks" {
+  description = "Controls if EKS resources should be created"
+  type        = bool
+  default     = true
+}
+
+variable "cluster_name" {
+  description = "Name of the EKS cluster"
+  type        = string
+  default     = "dev-eks-cluster"
+}
+
 variable "environment" {
   description = "Environment name"
   type        = string

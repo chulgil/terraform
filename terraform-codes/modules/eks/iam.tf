@@ -86,7 +86,8 @@ resource "aws_iam_role_policy_attachment" "node_AmazonEKS_CNI_IPv6_Policy" {
 
 # IAM Instance Profile for EKS nodes
 resource "aws_iam_instance_profile" "node" {
-  name = "${var.cluster_name}-node-instance-profile"
+  # Use a unique name to avoid conflicts
+  name = "${var.cluster_name}-node-instance-profile-${substr(md5(aws_iam_role.node.arn), 0, 8)}"
   role = aws_iam_role.node.name
 
   tags = merge(
@@ -95,4 +96,9 @@ resource "aws_iam_instance_profile" "node" {
       Name = "${var.cluster_name}-node-instance-profile"
     }
   )
+
+  # Import the existing instance profile if it exists
+  lifecycle {
+    ignore_changes = [name]
+  }
 }

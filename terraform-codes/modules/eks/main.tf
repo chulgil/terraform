@@ -61,19 +61,23 @@ resource "aws_eks_node_group" "node_group" {
     aws_iam_role_policy_attachment.node_AmazonEKSWorkerNodePolicy,
     aws_iam_role_policy_attachment.node_AmazonEKS_CNI_Policy,
     aws_iam_role_policy_attachment.node_AmazonEC2ContainerRegistryReadOnly,
-    # Add additional required policies
     aws_iam_role_policy_attachment.node_AmazonSSMManagedInstanceCore,
     aws_iam_role_policy_attachment.node_AmazonEC2RoleforSSM
   ]
 
   tags = merge(
     var.tags,
+    var.common_tags,
     {
       "kubernetes-io-cluster-${var.cluster_name}" = "owned"
       "k8s-io-cluster-autoscaler-enabled"         = "true"
       "k8s-io-cluster-autoscaler-${var.cluster_name}" = "owned"
-      # Add required tags for EKS
-      "k8s-io-cluster-${var.cluster_name}" = "owned"
+      "k8s-io-cluster-${var.cluster_name}"        = "owned"
+      "ManagedBy"                                 = "Terraform"
+      "RetryCount"                               = "0"
+      "Environment"                              = var.environment
+      "Terraform"                                = "true"
+      "Project"                                  = var.project_name
     }
   )
 
@@ -81,8 +85,19 @@ resource "aws_eks_node_group" "node_group" {
     create_before_destroy = true
     ignore_changes = [
       scaling_config[0].desired_size,
-      scaling_config[0].min_size
+      scaling_config[0].min_size,
+      # Ignore changes to launch template version to allow rolling updates
+      launch_template[0].version,
+      # Ignore tags that might be modified by external processes
+      tags,
     ]
+    
+    # Add a precondition to check if the cluster is in a valid state
+    # before attempting to create or update the node group
+    precondition {
+      condition     = can(regex("^[a-zA-Z][a-zA-Z0-9\\.\\-]*$", var.cluster_name))
+      error_message = "The cluster name must be a valid DNS subdomain name."
+    }
   }
 }
 

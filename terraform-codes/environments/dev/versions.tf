@@ -37,42 +37,38 @@ provider "aws" {
   }
 }
 
-# Configure the Kubernetes provider
-provider "kubernetes" {
-  host                   = module.eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-  
-  exec {
-    api_version = "client.authentication.k8s.io/v1beta1"
-    command     = "aws"
-    args = ["eks", "get-token", "--cluster-name", module.eks.cluster_name, "--region", var.region]
-  }
+# Data source for EKS cluster information (only used after cluster is created)
+data "aws_eks_cluster" "cluster" {
+  count = var.create_eks ? 1 : 0
+  name  = var.cluster_name
 }
 
-# Configure the Helm provider
+data "aws_eks_cluster_auth" "cluster" {
+  count = var.create_eks ? 1 : 0
+  name  = var.cluster_name
+}
+
+# Configure the Kubernetes provider (only if cluster exists)
+provider "kubernetes" {
+  host                   = var.create_eks ? data.aws_eks_cluster.cluster[0].endpoint : ""
+  cluster_ca_certificate = var.create_eks ? base64decode(data.aws_eks_cluster.cluster[0].certificate_authority[0].data) : ""
+  token                  = var.create_eks ? data.aws_eks_cluster_auth.cluster[0].token : ""
+}
+
+# Configure the Helm provider (only if cluster exists)
 provider "helm" {
   kubernetes {
-    host                   = module.eks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-    
-    exec {
-      api_version = "client.authentication.k8s.io/v1beta1"
-      command     = "aws"
-      args = ["eks", "get-token", "--cluster-name", module.eks.cluster_name, "--region", var.region]
-    }
+    host                   = var.create_eks ? data.aws_eks_cluster.cluster[0].endpoint : ""
+    cluster_ca_certificate = var.create_eks ? base64decode(data.aws_eks_cluster.cluster[0].certificate_authority[0].data) : ""
+    token                  = var.create_eks ? data.aws_eks_cluster_auth.cluster[0].token : ""
   }
 }
 
-# Configure the Kubectl provider
+# Configure the Kubectl provider (only if cluster exists)
 provider "kubectl" {
   apply_retry_count      = 5
-  host                   = module.eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+  host                   = var.create_eks ? data.aws_eks_cluster.cluster[0].endpoint : ""
+  cluster_ca_certificate = var.create_eks ? base64decode(data.aws_eks_cluster.cluster[0].certificate_authority[0].data) : ""
+  token                  = var.create_eks ? data.aws_eks_cluster_auth.cluster[0].token : ""
   load_config_file       = false
-  
-  exec {
-    api_version = "client.authentication.k8s.io/v1beta1"
-    command     = "aws"
-    args = ["eks", "get-token", "--cluster-name", module.eks.cluster_name, "--region", var.region]
-  }
 }
