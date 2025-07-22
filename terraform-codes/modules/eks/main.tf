@@ -8,6 +8,12 @@ resource "aws_eks_cluster" "main" {
   name     = var.cluster_name
   role_arn = aws_iam_role.cluster.arn
   version  = var.kubernetes_version
+  
+  # AWS EKS 1.33에 필요한 애드온 구성
+  # EKS 클러스터 생성 후 애드온 리소스로 따로 생성
+  kubernetes_network_config {
+    service_ipv4_cidr = var.service_ipv4_cidr
+  }
 
   vpc_config {
     subnet_ids              = var.private_subnet_ids
@@ -16,11 +22,10 @@ resource "aws_eks_cluster" "main" {
     public_access_cidrs     = ["0.0.0.0/0"]
   }
 
-  # Ensure that IAM Role permissions are created before and deleted after EKS Cluster handling.
-  # Otherwise, EKS will not be able to properly delete EKS managed EC2 infrastructure such as Security Groups.
+  # Ensure that IAM Role has proper permissions before creating the EKS cluster.
+  # The actual IAM role policy attachments are defined in the IAM module.
   depends_on = [
-    aws_iam_role_policy_attachment.cluster_AmazonEKSClusterPolicy,
-    aws_iam_role_policy_attachment.cluster_AmazonEKSServicePolicy,
+    aws_iam_role.cluster
   ]
 
   tags = merge(
@@ -56,13 +61,10 @@ resource "aws_eks_node_group" "node_group" {
     max_unavailable = 1
   }
 
-  # Ensure that IAM Role permissions are created before and deleted after EKS Node Group handling.
+  # Ensure that IAM Role has proper permissions before creating the node group
+  # The actual IAM role policy attachments are defined in the IAM module
   depends_on = [
-    aws_iam_role_policy_attachment.node_AmazonEKSWorkerNodePolicy,
-    aws_iam_role_policy_attachment.node_AmazonEKS_CNI_Policy,
-    aws_iam_role_policy_attachment.node_AmazonEC2ContainerRegistryReadOnly,
-    aws_iam_role_policy_attachment.node_AmazonSSMManagedInstanceCore,
-    aws_iam_role_policy_attachment.node_AmazonEC2RoleforSSM
+    aws_iam_role.node
   ]
 
   tags = merge(

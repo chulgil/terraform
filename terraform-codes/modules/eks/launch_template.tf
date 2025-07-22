@@ -102,13 +102,19 @@ locals {
   ]))
   
   eks_node_userdata = <<-USERDATA
+  MIME-Version: 1.0
+  Content-Type: multipart/mixed; boundary="==BOUNDARY=="
+  
+  --==BOUNDARY==
+  Content-Type: text/x-shellscript; charset="us-ascii"
+
   #!/bin/bash
   set -o xtrace
   exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
-  
-  # For AL2023, containerd is already installed and configured by default
-  # Just ensure it's running with the correct cgroup driver
-  cat <<-EOF > /etc/containerd/config.toml
+
+  # Configure containerd
+  mkdir -p /etc/containerd
+  cat > /etc/containerd/config.toml <<EOT
   version = 2
   [plugins]
     [plugins."io.containerd.grpc.v1.cri"]
@@ -118,60 +124,53 @@ locals {
           runtime_type = "io.containerd.runc.v2"
           [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
             SystemdCgroup = true
-  EOF
-  
+  EOT
+
   # Restart containerd with new config
   systemctl restart containerd
-  
+
   # Configure kubelet for AL2023
   mkdir -p /etc/systemd/system/kubelet.service.d
-  cat <<-EOF > /etc/systemd/system/kubelet.service.d/10-eksclt.al2023.conf
+  cat > /etc/systemd/system/kubelet.service.d/10-eksclt.al2023.conf <<EOT
   [Service]
   Environment="KUBELET_EXTRA_ARGS=--node-ip=$(hostname -i) --cloud-provider=aws"
-  EOF
-  
-  # Enable and start kubelet
-  systemctl enable --now kubelet
-  
-  # Create bootstrap script with node labels and taints if needed
-  cat <<-EOF > /etc/eks/bootstrap.sh
-  #!/bin/bash
-  set -e
-  
-  # Standard EKS bootstrap script for AL2023
-  /etc/eks/bootstrap.sh ${var.cluster_name} \
-    --container-runtime containerd \
-    --dns-cluster-ip ${cidrhost(var.service_ipv4_cidr, 10)} \
-    --use-max-pods ${var.use_max_pods ? "true" : "false"} \
-    --b64-cluster-ca ${aws_eks_cluster.main.certificate_authority[0].data} \
-    --apiserver-endpoint ${aws_eks_cluster.main.endpoint} \
-    ${length(local.kubelet_extra_args) > 0 ? "--kubelet-extra-args \"${local.kubelet_extra_args}\"" : ""}
-  EOF
-  
-  chmod +x /etc/eks/bootstrap.sh
-  
-  # Run the bootstrap script
-  /etc/eks/bootstrap.sh
-  
-  # Ensure kubelet is running
-  systemctl enable kubelet
-  systemctl start kubelet
-  
+  EOT
+
+  --==BOUNDARY==
+  Content-Type: application/node.eks.aws
+
+  apiVersion: node.eks.aws/v1alpha1
+  kind: NodeConfig
+  spec:
+    cluster:
+      name: ${var.cluster_name}
+      apiServerEndpoint: ${aws_eks_cluster.main.endpoint}
+      certificateAuthority: ${aws_eks_cluster.main.certificate_authority[0].data}
+      cidr: ${var.service_ipv4_cidr}
+    kubelet:
+      config:
+        clusterDNS:
+          - ${cidrhost(var.service_ipv4_cidr, 10)}
+      ${length(local.kubelet_extra_args) > 0 ? "flags:\n      ${replace(local.kubelet_extra_args, " ", "\n      ")}" : ""}
+
+  --==BOUNDARY==
+  Content-Type: text/x-shellscript; charset="us-ascii"
+
   # Install SSM agent
   if ! command -v amazon-ssm-agent &> /dev/null; then
     yum install -y https://s3.${var.region}.amazonaws.com/amazon-ssm-${var.region}/latest/linux_amd64/amazon-ssm-agent.rpm
     systemctl enable amazon-ssm-agent
     systemctl start amazon-ssm-agent
   fi
-  
+
   # Install CloudWatch agent
   if [ ! -f "/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl" ]; then
     yum install -y https://s3.${var.region}.amazonaws.com/amazoncloudwatch-agent-${var.region}/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
   fi
-  
+
   # Set up CloudWatch agent config
   mkdir -p /opt/aws/amazon-cloudwatch-agent/etc/
-  cat <<-EOF > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+  cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<EOT
   {
     "agent": {
       "metrics_collection_interval": 60,
