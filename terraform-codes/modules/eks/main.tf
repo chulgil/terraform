@@ -36,20 +36,21 @@ resource "aws_eks_cluster" "main" {
   )
 }
 
-# Node Group
+# Node Group - Temporarily using managed node group without launch template
 resource "aws_eks_node_group" "node_group" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = coalesce(var.node_group_name, "${var.cluster_name}-node-group")
   node_role_arn   = aws_iam_role.node.arn
   subnet_ids      = var.private_subnet_ids
-  ami_type        = "CUSTOM"
+  ami_type        = "AL2023_x86_64_STANDARD"  # Use managed AMI type for testing
   capacity_type   = var.capacity_type
+  instance_types  = var.instance_types
   
-  # Add launch template for better control over node configuration
-  launch_template {
-    id      = aws_launch_template.eks_nodes.id
-    version = "$Latest"
-  }
+  # Temporarily disable launch template for debugging
+  # launch_template {
+  #   id      = aws_launch_template.eks_nodes.id
+  #   version = "$Latest"
+  # }
 
   scaling_config {
     desired_size = var.desired_size

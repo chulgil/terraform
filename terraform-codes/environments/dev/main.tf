@@ -56,6 +56,9 @@ module "eks" {
   # AMI configuration
   ami_id                     = var.ami_id
   
+  # IRSA configuration
+  enable_irsa                = true
+  
   # Tags
   common_tags = local.common_tags
   tags = merge(

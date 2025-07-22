@@ -117,6 +117,14 @@ resource "aws_security_group" "vpc_endpoints" {
     description = "Allow HTTPS from VPC"
   }
 
+  egress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+    description = "Allow HTTPS to VPC"
+  }
+
   tags = merge(
     var.common_tags,
     {

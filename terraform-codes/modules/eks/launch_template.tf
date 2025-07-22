@@ -11,78 +11,79 @@ data "aws_ssm_parameter" "eks_ami" {
   }
 }
 
-# Launch template for EKS nodes
-resource "aws_launch_template" "eks_nodes" {
-  name_prefix   = "${var.cluster_name}-nodes-"
-  # Always use the latest EKS-optimized AMI from SSM Parameter Store
-  image_id      = data.aws_ssm_parameter.eks_ami.value
-  instance_type = var.instance_types[0]
-  key_name      = var.key_name
-  user_data     = base64encode(local.eks_node_userdata)
+# Launch template for EKS nodes - TEMPORARILY DISABLED FOR DEBUGGING
+# resource "aws_launch_template" "eks_nodes" {
+#   name_prefix   = "${var.cluster_name}-nodes-"
+#   # Always use the latest EKS-optimized AMI from SSM Parameter Store
+#   image_id      = data.aws_ssm_parameter.eks_ami.value
+#   instance_type = var.instance_types[0]
+#   key_name      = var.key_name
+#   user_data     = base64encode(local.eks_node_userdata)
+#
+#   # Block device mappings
+#   block_device_mappings {
+#     device_name = "/dev/xvda"
+#     ebs {
+#       volume_size           = var.node_disk_size
+#       volume_type           = "gp3"
+#       delete_on_termination = true
+#       encrypted             = true
+#       iops                  = var.ebs_iops
+#       throughput           = var.ebs_throughput
+#     }
+#   }
+#
+#   # Network interfaces
+#   network_interfaces {
+#     associate_public_ip_address = false
+#     delete_on_termination       = true
+#     security_groups             = [aws_security_group.worker_nodes.id]
+#   }
+#
+#   # Metadata options for IMDSv2
+#   metadata_options {
+#     http_endpoint               = "enabled"
+#     http_tokens                 = "required"
+#     http_put_response_hop_limit = 2
+#     http_protocol_ipv6          = "disabled"
+#     instance_metadata_tags      = "enabled"
+#   }
+#
+#   # Enable detailed monitoring
+#   monitoring {
+#     enabled = true
+#   }
+#
+#   # Tag specifications
+#   tag_specifications {
+#     resource_type = "instance"
+#     tags = merge(
+#       var.tags,
+#       {
+#         Name                                              = "${var.cluster_name}-node"
+#         "kubernetes-io-cluster-${var.cluster_name}"      = "owned"
+#         "k8s-io-cluster-autoscaler-enabled"              = "true"
+#         "k8s-io-cluster-autoscaler-${var.cluster_name}"  = "owned"
+#       }
+#     )
+#   }
+#
+#   tag_specifications {
+#     resource_type = "volume"
+#     tags = merge(
+#       var.tags,
+#       {
+#         Name = "${var.cluster_name}-node-volume"
+#       }
+#     )
+#   }
 
-  # Block device mappings
-  block_device_mappings {
-    device_name = "/dev/xvda"
-    ebs {
-      volume_size           = var.node_disk_size
-      volume_type           = "gp3"
-      delete_on_termination = true
-      encrypted             = true
-      iops                  = var.ebs_iops
-      throughput           = var.ebs_throughput
-    }
-  }
-
-  # Network interfaces
-  network_interfaces {
-    associate_public_ip_address = false
-    delete_on_termination       = true
-    security_groups             = [aws_security_group.worker_nodes.id]
-  }
-
-  # Metadata options for IMDSv2
-  metadata_options {
-    http_endpoint               = "enabled"
-    http_tokens                 = "required"
-    http_put_response_hop_limit = 2
-    http_protocol_ipv6          = "disabled"
-    instance_metadata_tags      = "enabled"
-  }
-
-  # Enable detailed monitoring
-  monitoring {
-    enabled = true
-  }
-
-  # Tag specifications
-  tag_specifications {
-    resource_type = "instance"
-    tags = merge(
-      var.tags,
-      {
-        Name                                              = "${var.cluster_name}-node"
-        "kubernetes-io-cluster-${var.cluster_name}"      = "owned"
-        "k8s-io-cluster-autoscaler-enabled"              = "true"
-        "k8s-io-cluster-autoscaler-${var.cluster_name}"  = "owned"
-      }
-    )
-  }
-
-  tag_specifications {
-    resource_type = "volume"
-    tags = merge(
-      var.tags,
-      {
-        Name = "${var.cluster_name}-node-volume"
-      }
-    )
-  }
-
-  # Lifecycle policy
-  lifecycle {
-    create_before_destroy = true
-  }
-}
+#
+#   # Lifecycle policy
+#   lifecycle {
+#     create_before_destroy = true
+#   }
+# }
 
 # User data for EKS nodes
 locals {
@@ -102,39 +103,52 @@ locals {
   ]))
   
   eks_node_userdata = <<-USERDATA
-  MIME-Version: 1.0
-  Content-Type: multipart/mixed; boundary="==BOUNDARY=="
-  
-  --==BOUNDARY==
-  Content-Type: text/x-shellscript; charset="us-ascii"
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="==BOUNDARY=="
 
-  #!/bin/bash
-  set -o xtrace
-  exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+--==BOUNDARY==
+Content-Type: text/x-shellscript; charset="us-ascii"
 
-  # Configure containerd
-  mkdir -p /etc/containerd
-  cat > /etc/containerd/config.toml <<EOT
-  version = 2
-  [plugins]
-    [plugins."io.containerd.grpc.v1.cri"]
-      [plugins."io.containerd.grpc.v1.cri".containerd]
-        default_runtime_name = "runc"
-        [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
-          runtime_type = "io.containerd.runc.v2"
-          [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
-            SystemdCgroup = true
-  EOT
+#!/bin/bash
+# Enable detailed logging
+set -x
+exec > >(tee /var/log/user-data.log) 2>&1
+echo "Starting user data script at $(date)"
 
-  # Restart containerd with new config
-  systemctl restart containerd
+# Log system information
+echo "System info:"
+uname -a
+cat /etc/os-release
 
-  # Configure kubelet for AL2023
-  mkdir -p /etc/systemd/system/kubelet.service.d
-  cat > /etc/systemd/system/kubelet.service.d/10-eksclt.al2023.conf <<EOT
-  [Service]
-  Environment="KUBELET_EXTRA_ARGS=--node-ip=$(hostname -i) --cloud-provider=aws"
-  EOT
+# Configure containerd
+echo "Configuring containerd..."
+mkdir -p /etc/containerd
+cat > /etc/containerd/config.toml <<EOT
+version = 2
+[plugins]
+  [plugins."io.containerd.grpc.v1.cri"]
+    [plugins."io.containerd.grpc.v1.cri".containerd]
+      default_runtime_name = "runc"
+      [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+        runtime_type = "io.containerd.runc.v2"
+        [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+          SystemdCgroup = true
+EOT
+
+# Restart containerd with new config
+echo "Restarting containerd..."
+systemctl restart containerd
+systemctl status containerd
+
+# Configure kubelet for AL2023
+echo "Configuring kubelet..."
+mkdir -p /etc/systemd/system/kubelet.service.d
+cat > /etc/systemd/system/kubelet.service.d/10-eksclt.al2023.conf <<EOT
+[Service]
+Environment="KUBELET_EXTRA_ARGS=--node-ip=$(hostname -i) --cloud-provider=aws"
+EOT
+
+echo "Kubelet configuration completed"
 
   --==BOUNDARY==
   Content-Type: application/node.eks.aws

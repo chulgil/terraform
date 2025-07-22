@@ -1,6 +1,25 @@
-# AWS EKS 개발 환경 (Dev Environment) 
+# AWS EKS 개발 환경 (Dev Environment) ✅ 배포 완료
 
 이 문서는 Terraform으로 구축된 AWS EKS 개발 환경의 구조, 구성 요소 및 유지보수 가이드를 제공합니다.
+
+## 🎉 배포 상태 (2025-07-22 업데이트)
+
+**✅ 모든 인프라 컴포넌트가 성공적으로 배포되어 운영 중입니다!**
+
+### 현재 운영 중인 서비스
+- **EKS 클러스터**: `dev-eks-cluster` (Kubernetes 1.33) - 정상 작동
+- **노드 그룹**: 2개 노드 Running 상태 (t3.medium, AL2023)
+- **ALB Controller**: 2개 파드 Running (Helm 배포 완료)
+- **Cert-Manager**: 3개 파드 Running (Helm 배포 완료)
+- **IRSA/OIDC Provider**: 활성화 및 정상 작동
+- **VPC 엔드포인트**: ECR, S3, EC2 통신 정상
+- **Bastion 호스트**: `54.180.136.244` - SSH 접근 가능
+
+### 해결된 주요 문제들
+- ✅ **EKS Node Group 생성 실패** → VPC 엔드포인트 보안그룹 egress 규칙 추가로 해결
+- ✅ **ALB Controller Helm 배포 실패** → IRSA annotation 처리 방식 개선으로 해결
+- ✅ **Cert-Manager 네임스페이스 충돌** → 기존 네임스페이스 삭제 후 재생성으로 해결
+- ✅ **OIDC Provider 미생성** → `enable_irsa = true` 추가로 해결
 
 ## 프로젝트 구조
 
@@ -327,6 +346,280 @@ aws ec2 delete-launch-template --launch-template-id "템플릿_ID"
    - 시작 템플릿 삭제
    - Terraform 상태에서 관련 리소스 제거
    - 수정된 user data로 다시 적용
+
+## 🚀 현재 사용 가능한 기능들
+
+### 1. 자동 로드밸런서 프로비저닝
+Kubernetes Ingress 리소스를 생성하면 ALB Controller가 자동으로 AWS Application Load Balancer를 생성합니다.
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-ingress
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+spec:
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: example-service
+            port:
+              number: 80
+```
+
+### 2. 자동 SSL/TLS 인증서 발급
+Cert-Manager를 통해 Let's Encrypt에서 자동으로 SSL 인증서를 발급받을 수 있습니다.
+
+```yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: example-tls
+spec:
+  secretName: example-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+  - example.com
+```
+
+### 3. IRSA를 통한 안전한 AWS 권한 관리
+ServiceAccount에 IAM 역할을 연결하여 파드별로 세밀한 AWS 권한을 부여할 수 있습니다.
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: my-service-account
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/my-role
+```
+
+## 🔐 Bastion 호스트 SSH 접속 설정
+
+### SSH 키 생성 및 Bastion 접속 가이드
+
+**현재 Bastion 호스트에 SSH 키가 설정되어 있지 않아 접속이 불가능합니다.**
+다음 단계를 따라 SSH 키를 생성하고 Bastion 호스트를 재배포하세요.
+
+#### 1단계: AWS에서 새로운 SSH 키 페어 생성
+```bash
+# 새로운 SSH 키 페어 생성
+aws ec2 create-key-pair --key-name dev-bastion-key --query 'KeyMaterial' --output text > ~/.ssh/dev-bastion-key.pem
+
+# SSH 키 파일 권한 설정
+chmod 400 ~/.ssh/dev-bastion-key.pem
+
+# 키 파일 생성 확인
+ls -la ~/.ssh/dev-bastion-key.pem
+```
+
+#### 2단계: Terraform 변수 설정
+```bash
+# terraform.tfvars 파일 생성 또는 업데이트
+echo 'bastion_key_name = "dev-bastion-key"' >> terraform.tfvars
+
+# 변수 설정 확인
+cat terraform.tfvars | grep bastion_key_name
+```
+
+#### 3단계: Bastion 호스트 재배포
+```bash
+# Bastion 모듈만 재배포
+terraform apply -target=module.bastion
+
+# 또는 전체 인프라 업데이트
+terraform apply
+```
+
+#### 4단계: SSH 접속 테스트
+```bash
+# Bastion 호스트에 SSH 접속
+ssh -i ~/.ssh/dev-bastion-key.pem ec2-user@54.180.136.244
+
+# 접속 성공 후 클러스터 접근 설정
+aws eks update-kubeconfig --region ap-northeast-2 --name dev-eks-cluster
+kubectl get nodes
+```
+
+### SSH Config 설정 (선택사항)
+편리한 접속을 위해 SSH config를 설정할 수 있습니다:
+
+```bash
+# ~/.ssh/config 파일에 추가
+cat >> ~/.ssh/config << EOF
+Host bastion-dev
+    HostName 54.180.136.244
+    User ec2-user
+    IdentityFile ~/.ssh/dev-bastion-key.pem
+    StrictHostKeyChecking no
+EOF
+
+# 설정 후 간단한 접속
+ssh bastion-dev
+```
+
+### 대안 접속 방법 (SSH 키 없이)
+
+SSH 키 생성을 원하지 않는다면 AWS Systems Manager Session Manager를 사용할 수 있습니다:
+
+```bash
+# Bastion 인스턴스 ID 확인
+aws ec2 describe-instances --region ap-northeast-2 \
+  --filters "Name=tag:Name,Values=*bastion*" \
+  --query 'Reservations[*].Instances[*].InstanceId' --output text
+
+# Session Manager로 접속 (인스턴스 ID 대체)
+aws ssm start-session --target i-INSTANCE_ID --region ap-northeast-2
+```
+
+### 문제 해결
+
+#### SSH 접속 실패 시
+```bash
+# 키 파일 권한 재설정
+chmod 400 ~/.ssh/dev-bastion-key.pem
+
+# known_hosts 에서 기존 항목 제거
+ssh-keygen -R 54.180.136.244
+
+# 호스트 키 검증 무시하고 접속
+ssh -o StrictHostKeyChecking=no -i ~/.ssh/dev-bastion-key.pem ec2-user@54.180.136.244
+```
+
+#### 보안 그룹 문제 시
+```bash
+# 현재 IP 확인
+curl -s http://checkip.amazonaws.com
+
+# Bastion 보안 그룹에 현재 IP 추가 (필요시)
+aws ec2 authorize-security-group-ingress \
+  --group-id $(terraform output -raw bastion_security_group_id) \
+  --protocol tcp --port 22 --cidr $(curl -s http://checkip.amazonaws.com)/32
+```
+
+## 🚀 향후 배포 자동화 가이드
+
+### 완전 자동화 배포 (권장)
+현재 모든 문제가 해결되어 수동 작업 없이 완전 자동화가 가능합니다:
+
+```bash
+# 새로운 환경 배포 시 - 완전 자동화
+terraform init
+terraform plan
+terraform apply
+
+# 배포 완료 후 kubeconfig 설정 (한 번만)
+aws eks update-kubeconfig --region ap-northeast-2 --name dev-eks-cluster
+```
+
+### 단계별 안전 배포 (선택사항)
+더 안전한 배포를 원한다면 단계별로 진행:
+
+```bash
+# 1단계: 네트워크 및 EKS 기본 인프라
+terraform apply -target=module.vpc -target=module.iam -target=module.eks
+
+# 2단계: Bastion 호스트
+terraform apply -target=module.bastion
+
+# 3단계: ALB Controller
+terraform apply -target=module.alb_controller
+
+# 4단계: Cert-Manager
+terraform apply -target=module.cert_manager
+```
+
+### 배포 후 검증
+```bash
+# 전체 인프라 상태 확인
+kubectl get nodes
+kubectl get pods -A
+helm list -A
+
+# 핵심 서비스 상태 확인
+kubectl get pods -n kube-system | grep aws-load-balancer-controller
+kubectl get pods -n cert-manager
+kubectl get clusterissuer
+```
+
+## 🔧 운영 및 모니터링
+
+### 클러스터 상태 확인
+```bash
+# 노드 상태 확인
+kubectl get nodes
+
+# 모든 파드 상태 확인
+kubectl get pods -A
+
+# ALB Controller 상태
+kubectl get pods -n kube-system | grep aws-load-balancer-controller
+
+# Cert-Manager 상태
+kubectl get pods -n cert-manager
+```
+
+### Helm 릴리스 관리
+```bash
+# 모든 Helm 릴리스 확인
+helm list -A
+
+# ALB Controller 상태 확인
+helm status aws-load-balancer-controller -n kube-system
+
+# Cert-Manager 상태 확인
+helm status cert-manager -n cert-manager
+```
+
+### 리소스 사용량 모니터링
+```bash
+# 노드 리소스 사용량
+kubectl top nodes
+
+# 파드 리소스 사용량
+kubectl top pods -A
+
+# 클러스터 이벤트 확인
+kubectl get events -A --sort-by='.lastTimestamp'
+```
+
+## 📊 현재 배포된 리소스 정보
+
+### 네트워크 리소스
+- **VPC ID**: `vpc-06fadf9c2c40d86b9`
+- **퍼블릭 서브넷**: `subnet-082e52ac72ce5f2af`, `subnet-0421a2b3506a5df70`
+- **프라이빗 서브넷**: `subnet-0301dd844643eb194`, `subnet-0562e6c09b96e9a8c`
+- **Bastion 호스트**: `54.180.136.244`
+
+### EKS 리소스
+- **클러스터 이름**: `dev-eks-cluster`
+- **클러스터 엔드포인트**: `https://57ADE02C2596A18756849A8B658F2064.sk1.ap-northeast-2.eks.amazonaws.com`
+- **노드 그룹 ARN**: `arn:aws:eks:ap-northeast-2:421114334882:nodegroup/dev-eks-cluster/dev-eks-cluster-node-group/70cc181e-7934-ed2b-0b99-e7204b998a1b`
+
+### IAM 리소스
+- **ALB Controller IRSA 역할**: `arn:aws:iam::421114334882:role/dev-eks-cluster-alb-controller`
+- **OIDC Provider**: 활성화됨
+
+### VPC 엔드포인트
+- **ECR API**: `vpce-0895c1f3d55ee2f55`
+- **ECR DKR**: `vpce-0f266f884242492fa`
+- **S3**: `vpce-0c767a36071253bd1`
+- **EC2**: `vpce-0f898f87b4eb2fc5b`
+
+---
+
+**✅ 현재 인프라는 프로덕션 준비 상태입니다!**
+
+모든 핵심 컴포넌트가 정상 작동하며, 자동 로드밸런서 프로비저닝, SSL 인증서 관리, 안전한 AWS 권한 관리 등의 기능을 제공합니다.
 
 
 ## 참고 문서

@@ -253,6 +253,7 @@ resource "helm_release" "alb_controller" {
     value = "aws-load-balancer-controller"
   }
   
+  # IRSA annotation for automatic AWS permissions
   set {
     name  = "serviceAccount.annotations.eks.amazonaws.com/role-arn"
     value = module.alb_controller_irsa_role.iam_role_arn
