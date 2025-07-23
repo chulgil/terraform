@@ -70,6 +70,31 @@ resource "aws_iam_role_policy_attachment" "ssm_managed_instance_core" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+# EKS 클러스터 읽기 권한 정책
+resource "aws_iam_role_policy" "eks_access" {
+  name_prefix = "${var.environment}-bastion-eks-access-"
+  role        = aws_iam_role.bastion.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "eks:DescribeCluster",
+          "eks:ListClusters",
+          "eks:DescribeNodegroup",
+          "eks:ListNodegroups",
+          "eks:DescribeAddon",
+          "eks:ListAddons",
+          "eks:AccessKubernetesApi"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # IAM 인스턴스 프로파일
 resource "aws_iam_instance_profile" "bastion" {
   name_prefix = "${var.environment}-bastion-profile-"

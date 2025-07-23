@@ -12,10 +12,12 @@ resource "aws_iam_policy" "alb_controller" {
           "iam:CreateServiceLinkedRole",
           "ec2:DescribeAccountAttributes",
           "ec2:DescribeAddresses",
+          "ec2:DescribeAvailabilityZones",
           "ec2:DescribeInternetGateways",
           "ec2:DescribeVpcs",
           "ec2:DescribeSubnets",
           "ec2:DescribeSecurityGroups",
+          "ec2:GetSecurityGroupsForVpc",
           "ec2:DescribeInstances",
           "ec2:DescribeNetworkInterfaces",
           "ec2:DescribeTags",
@@ -28,6 +30,7 @@ resource "aws_iam_policy" "alb_controller" {
           "elasticloadbalancing:DescribeTargetGroups",
           "elasticloadbalancing:DescribeTargetGroupAttributes",
           "elasticloadbalancing:DescribeTargetHealth",
+          "elasticloadbalancing:DescribeTags",
           "elasticloadbalancing:CreateLoadBalancer",
           "elasticloadbalancing:CreateTargetGroup",
           "elasticloadbalancing:CreateListener",
@@ -199,7 +202,23 @@ resource "aws_iam_policy" "alb_controller" {
           "elasticloadbalancing:ModifyRule"
         ]
         Resource = "*"
-      }
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "wafv2:GetWebACL",
+          "wafv2:GetWebACLForResource",
+          "wafv2:AssociateWebACL",
+          "wafv2:DisassociateWebACL",
+          "waf-regional:GetWebACL",
+          "waf-regional:GetWebACLForResource",
+          "waf-regional:AssociateWebACL",
+          "waf-regional:DisassociateWebACL",
+          "waf:GetWebACL",
+          "waf:GetWebACLForResource"
+        ]
+        Resource = "*"
+      }      
     ]
   })
 }

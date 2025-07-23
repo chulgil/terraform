@@ -37,6 +37,8 @@ resource "aws_subnet" "public" {
     local.common_tags,
     {
       Name = "${var.environment}-public-${element(["a", "b", "c"], count.index)}"
+      "kubernetes.io/role/elb" = "1"
+      "kubernetes.io/cluster/${var.environment}-eks-cluster" = "shared"
     }
   )
 }
@@ -52,6 +54,8 @@ resource "aws_subnet" "private" {
     local.common_tags,
     {
       Name = "${var.environment}-private-${element(["a", "b", "c"], count.index)}"
+      "kubernetes.io/role/internal-elb" = "1"
+      "kubernetes.io/cluster/${var.environment}-eks-cluster" = "shared"
     }
   )
 }

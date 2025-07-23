@@ -20,6 +20,13 @@
 - ✅ **ALB Controller Helm 배포 실패** → IRSA annotation 처리 방식 개선으로 해결
 - ✅ **Cert-Manager 네임스페이스 충돌** → 기존 네임스페이스 삭제 후 재생성으로 해결
 - ✅ **OIDC Provider 미생성** → `enable_irsa = true` 추가로 해결
+- ✅ **ALB Controller IAM 권한 오류** → 모든 필요 권한(EC2, ELB, WAF) 추가로 해결
+- ✅ **ALB 생성 및 Ingress 서비스 노출** → 완전 자동화 성공
+
+### 🌐 현재 접속 가능한 서비스
+- **ALB URL**: `http://k8s-default-nginxing-38a72446fe-250405398.ap-northeast-2.elb.amazonaws.com`
+- **서비스**: nginx 웹 서버 (테스트 애플리케이션)
+- **상태**: 정상 작동 중 ✅
 
 ## 프로젝트 구조
 
@@ -184,6 +191,214 @@ module "alb_controller" {
     module.vpc
   ]
 }
+```
+
+## 💾 EBS CSI Driver 구성
+
+### 개요
+
+EBS CSI (Container Storage Interface) Driver는 Kubernetes 파드가 AWS EBS 볼륨을 영구 스토리지로 사용할 수 있게 해주는 핵심 구성 요소입니다.
+
+### 구성 파일 위치
+
+#### EKS 애드온 설정
+```hcl
+# modules/eks/addons.tf (라인 70-88)
+resource "aws_eks_addon" "ebs_csi_driver" {
+  cluster_name      = aws_eks_cluster.main.name
+  addon_name        = "aws-ebs-csi-driver"
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
+  
+  depends_on = [
+    aws_eks_node_group.node_group
+  ]
+  
+  tags = merge(
+    var.tags,
+    var.common_tags,
+    {
+      Name = "${var.cluster_name}-ebs-csi-driver-addon"
+    }
+  )
+}
+```
+
+#### EBS 성능 변수 정의
+```hcl
+# modules/eks/variables.tf (라인 154-173)
+variable "ebs_iops" {
+  description = "IOPS for EBS volumes"
+  type        = number
+  default     = 3000
+  
+  validation {
+    condition     = var.ebs_iops >= 3000 && var.ebs_iops <= 16000
+    error_message = "EBS IOPS must be between 3000 and 16000."
+  }
+}
+
+variable "ebs_throughput" {
+  description = "Throughput for EBS volumes in MiB/s"
+  type        = number
+  default     = 125
+  
+  validation {
+    condition     = var.ebs_throughput >= 125 && var.ebs_throughput <= 1000
+    error_message = "EBS throughput must be between 125 and 1000 MiB/s."
+  }
+}
+```
+
+### 현재 구성 상태
+
+- ✅ **AWS 관리형 애드온**: 자동 업데이트 및 패치 지원
+- ✅ **기본 성능**: IOPS 3000, Throughput 125 MiB/s
+- ✅ **볼륨 타입**: gp3 기본 지원
+- ✅ **고가용성**: Multi-AZ 지원
+- ✅ **암호화**: EBS 볼륨 암호화 지원
+
+### EBS CSI Driver 상태 확인
+
+```bash
+# EBS CSI Driver 파드 확인
+kubectl get pods -n kube-system | grep ebs-csi
+
+# StorageClass 확인
+kubectl get storageclass
+
+# CSI Driver 정보
+kubectl get csidriver ebs.csi.aws.com
+
+# EBS CSI 노드 상세 정보
+kubectl get csidrivers ebs.csi.aws.com -o yaml
+```
+
+### 영구 볼륨 사용 예시
+
+#### 1. PersistentVolumeClaim 생성
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: gp3
+```
+
+#### 2. 파드에서 볼륨 사용
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  template:
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "password"
+        volumeMounts:
+        - name: mysql-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-storage
+        persistentVolumeClaim:
+          claimName: mysql-pvc
+```
+
+### 고성능 StorageClass 생성
+
+```yaml
+# k8s-manifests/storage/fast-ssd-storageclass.yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-ssd
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  iops: "5000"
+  throughput: "250"
+  encrypted: "true"
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+```
+
+### 볼륨 스냅샷 생성
+
+```yaml
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: mysql-snapshot
+spec:
+  volumeSnapshotClassName: csi-aws-vsc
+  source:
+    persistentVolumeClaimName: mysql-pvc
+```
+
+### EBS 볼륨 타입별 특징
+
+| 볼륨 타입 | 용도 | 기본 성능 | 최대 성능 | 비용 |
+|-----------|------|-----------|-----------|------|
+| **gp3** | 일반 워크로드 | 3,000 IOPS, 125 MiB/s | 16,000 IOPS, 1,000 MiB/s | 중간 |
+| **io2** | 고성능 DB | 100 IOPS/GiB | 64,000 IOPS | 높음 |
+| **st1** | 빅데이터, 로그 | 40 MiB/s/TiB | 500 MiB/s | 낮음 |
+
+### 성능 튜닝
+
+#### terraform.tfvars에서 성능 조정
+```hcl
+# environments/dev/terraform.tfvars
+ebs_iops = 5000
+ebs_throughput = 250
+```
+
+#### 애플리케이션별 최적화
+```bash
+# 데이터베이스용 고성능 볼륨
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: db-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: fast-ssd
+EOF
+```
+
+### 문제 해결
+
+#### EBS CSI Driver 파드 재시작
+```bash
+kubectl rollout restart daemonset ebs-csi-node -n kube-system
+kubectl rollout restart deployment ebs-csi-controller -n kube-system
+```
+
+#### 볼륨 마운트 실패 시
+```bash
+# 파드 이벤트 확인
+kubectl describe pod <pod-name>
+
+# PVC 상태 확인
+kubectl describe pvc <pvc-name>
+
+# EBS 볼륨 상태 확인 (AWS CLI)
+aws ec2 describe-volumes --filters "Name=tag:kubernetes.io/created-for/pvc/name,Values=<pvc-name>"
 ```
 
 ## 유지보수 가이드
@@ -614,6 +829,139 @@ kubectl get events -A --sort-by='.lastTimestamp'
 - **ECR DKR**: `vpce-0f266f884242492fa`
 - **S3**: `vpce-0c767a36071253bd1`
 - **EC2**: `vpce-0f898f87b4eb2fc5b`
+
+## 🚨 ALB Controller 및 서비스 문제 해결
+
+### ALB Controller IAM 권한 오류
+
+#### 문제 증상
+```bash
+# Ingress 상태 확인 시 권한 오류 발생
+kubectl describe ingress nginx-ingress
+
+# 예시 오류들:
+# - ec2:DescribeAvailabilityZones
+# - ec2:GetSecurityGroupsForVpc  
+# - elasticloadbalancing:DescribeTags
+# - wafv2:GetWebACLForResource
+# - waf-regional:GetWebACLForResource
+```
+
+#### 해결 방법
+```bash
+# 1. ALB Controller IAM 정책 업데이트
+terraform apply -target=module.alb_controller
+
+# 2. ALB Controller 파드 재시작 (새로운 권한 적용)
+kubectl delete pod -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller
+
+# 3. 파드 재시작 확인
+kubectl get pods -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller
+
+# 4. Ingress 재생성
+kubectl delete ingress nginx-ingress --ignore-not-found=true
+kubectl apply -f /Users/r00360/Dev/devops/terraform/k8s-manifests/deploy-pods/nginx-ingress.yaml
+
+# 5. 상태 재확인
+kubectl describe ingress nginx-ingress
+```
+
+### 503 Service Temporarily Unavailable 오류
+
+#### 문제 증상
+```bash
+# ALB URL 접속 시 503 오류
+curl http://ALB-DNS-NAME
+# <html><head><title>503 Service Temporarily Unavailable</title></head></html>
+```
+
+#### 원인 및 해결
+```bash
+# 1. nginx 파드 상태 확인
+kubectl get pods -l app=nginx
+
+# 2. CreateContainerConfigError 발생 시 (보안 정책 문제)
+# 문제: runAsNonRoot 정책과 nginx root 실행 충돌
+kubectl describe pod POD-NAME
+# Error: container has runAsNonRoot and image will run as root
+
+# 3. 해결: 기존 deployment 삭제 후 재생성
+kubectl delete deployment nginx-deployment  # 문제있는 deployment 삭제
+kubectl create deployment nginx --image=nginx:latest  # 새 deployment 생성
+
+# 4. 파드 상태 확인
+kubectl get pods -l app=nginx
+# 정상: Running 상태여야 함
+
+# 5. Target Group Binding 확인
+kubectl get targetgroupbinding -n default
+kubectl describe targetgroupbinding -n default
+```
+
+### ALB DNS 해결 문제
+
+#### 문제 증상
+```bash
+curl http://ALB-DNS-NAME
+# curl: (6) Could not resolve host: ALB-DNS-NAME
+```
+
+#### 해결 방법
+```bash
+# 1. ALB 생성 상태 확인
+kubectl get ingress nginx-ingress
+# ADDRESS 필드에 ALB DNS 이름이 있어야 함
+
+# 2. DNS 전파 대기 (2-10분 소요)
+# ALB 생성 직후에는 DNS 전파 시간 필요
+
+# 3. nslookup으로 DNS 해결 확인
+nslookup ALB-DNS-NAME
+
+# 4. 재시도
+curl http://ALB-DNS-NAME
+```
+
+### nginx 파드 replica 수 조정
+
+#### 현재 상태 확인
+```bash
+# Deployment replica 수 확인
+kubectl get deployment nginx
+kubectl describe deployment nginx | grep Replicas
+```
+
+#### replica 수 조정 (필요시)
+```bash
+# 1개로 줄이기
+kubectl scale deployment nginx --replicas=1
+
+# 3개로 늘리기 (고가용성 권장)
+kubectl scale deployment nginx --replicas=3
+
+# 확인
+kubectl get pods -l app=nginx
+```
+
+### 완전한 ALB 테스트 절차
+
+```bash
+# 1. 모든 컴포넌트 상태 확인
+kubectl get pods -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller
+kubectl get pods -l app=nginx
+kubectl get svc nginx-service
+kubectl get ingress nginx-ingress
+
+# 2. ALB Controller 로그 확인
+kubectl logs -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller --tail=20
+
+# 3. Target Group Binding 확인
+kubectl get targetgroupbinding -n default
+
+# 4. ALB 접속 테스트
+curl http://ALB-DNS-NAME
+# 성공 시: nginx 기본 페이지 ("Welcome to nginx!") 표시
+```
 
 ---
 
