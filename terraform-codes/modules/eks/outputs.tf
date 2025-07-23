@@ -49,6 +49,21 @@ output "cluster_oidc_issuer_url" {
   value       = aws_eks_cluster.main.identity[0].oidc[0].issuer
 }
 
+output "node_group_security_group_id" {
+  description = "The security group ID of the EKS node group"
+  value       = aws_security_group.worker_nodes.id
+}
+
+output "node_role_arn" {
+  description = "The ARN of the IAM role for the EKS node group"
+  value       = aws_iam_role.node.arn
+}
+
+output "node_role_name" {
+  description = "The name of the IAM role for the EKS node group"
+  value       = aws_iam_role.node.name
+}
+
 output "oidc_provider_arn" {
   description = "The ARN of the OIDC Provider if enabled"
   value       = var.enable_irsa ? aws_iam_openid_connect_provider.main[0].arn : ""

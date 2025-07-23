@@ -1,0 +1,18 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: efs-sc
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: efs-ap  # EFS Access Point 기반 동적 프로비저닝
+  fileSystemId: "fs-12345678"  # 실제 EFS 파일 시스템 ID로 변경 필요
+  directoryPerms: "700"  # 디렉터리 권한 설정
+  gidRangeStart: "1000"  # GID 범위 시작
+  gidRangeEnd: "2000"    # GID 범위 종료
+  basePath: "/dynamic_provisioning"  # 동적 프로비저닝을 위한 기본 경로
+  fileSystemName: "efs-sc"  # 파일 시스템 이름 (선택사항)
+  uid: "1000"  # 파일 소유자 UID
+  gid: "1000"  # 파일 소유자 GID
+mountOptions:
+  - tls  # TLS를 통한 전송 암호화
+  - iam   # IAM 인증 사용 (선택사항)

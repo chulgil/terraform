@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: deploy-pod2
+  namespace: dev-csi-file-pv
+  labels:
+    app: efs-test
+    component: reader
+spec:
+  securityContext:
+    fsGroup: 1000  # 파일 시스템 그룹 ID 설정 (Pod 1과 동일하게 유지)
+    runAsUser: 1000  # 컨테이너 실행 사용자 ID
+    runAsGroup: 1000  # 컨테이너 실행 그룹 ID
+  containers:
+  - name: app
+    image: centos:8  # Pod 1과 동일한 이미지 버전 사용
+    command: ["/bin/sh"]
+    args: ["-c", "while true; do cat /dpod2/out; sleep 10; done"]  # 읽기 전용 테스트를 위해 내용 출력
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
+      limits:
+        cpu: "100m"
+        memory: "128Mi"
+    volumeMounts:
+    - name: persistent-storage2
+      mountPath: /dpod2
+      readOnly: true  # 읽기 전용으로 마운트 (안전성 향상)
+    livenessProbe:
+      exec:
+        command: ["ls", "/dpod2/out"]
+      initialDelaySeconds: 30
+      periodSeconds: 30
+    readinessProbe:
+      exec:
+        command: ["ls", "/dpod2/out"]
+      initialDelaySeconds: 5
+      periodSeconds: 10
+  volumes:
+  - name: persistent-storage2
+    persistentVolumeClaim:
+      claimName: efs-pv-claim
+      readOnly: true  # 읽기 전용으로 볼륨 마운트 (안전성 향상)
+  nodeSelector:
+    kubernetes.io/os: linux  # 리눅스 노드에만 스케줄링
+  tolerations:
+  - key: "CriticalAddonsOnly"
+    operator: "Exists"

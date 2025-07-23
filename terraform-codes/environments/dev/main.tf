@@ -48,6 +48,8 @@ module "eks" {
   max_size     = var.max_size
   min_size     = var.min_size
   
+  # EFS security group will be added via separate security group rule
+  
   # Network configuration
   region                     = var.region
   service_ipv4_cidr          = var.service_ipv4_cidr
@@ -58,6 +60,10 @@ module "eks" {
   
   # IRSA configuration
   enable_irsa                = true
+  
+  # Bastion access configuration
+  bastion_security_group_id  = module.bastion.bastion_security_group_id
+  enable_bastion_access      = true
   
   # Tags
   common_tags = local.common_tags
@@ -128,4 +134,95 @@ module "cert_manager" {
     module.eks,
     module.alb_controller  # ALB controller should be ready before cert-manager
   ]
+}
+
+# EFS Module
+module "efs" {
+  source = "../../modules/efs"
+
+  name              = "${var.environment}-efs"
+  vpc_id           = module.vpc.vpc_id
+  vpc_cidr         = var.vpc_cidr
+  private_subnet_ids = module.vpc.private_subnet_ids
+  
+  tags = merge(
+    local.common_tags,
+    {
+      "kubernetes.io/cluster/${module.eks.cluster_name}" = "owned"
+    }
+  )
+}
+
+# Allow EKS nodes to access EFS
+resource "aws_security_group_rule" "eks_to_efs" {
+  description              = "Allow EKS nodes to access EFS"
+  from_port                = 2049
+  to_port                  = 2049
+  protocol                = "tcp"
+  security_group_id        = module.efs.security_group_id
+  source_security_group_id = module.eks.node_group_security_group_id
+  type                    = "ingress"
+}
+
+# EKS 노드 보안 그룹에 EFS 접근 권한 추가
+resource "aws_security_group_rule" "eks_nodes_efs" {
+  description              = "Allow EKS nodes to access EFS"
+  from_port                = 2049
+  to_port                  = 2049
+  protocol                = "tcp"
+  security_group_id        = module.eks.node_group_security_group_id
+  source_security_group_id = module.efs.security_group_id
+  type                    = "ingress"
+}
+
+# EFS CSI 드라이버 IAM 정책
+resource "aws_iam_policy" "efs_csi_driver" {
+  name        = "${var.environment}-efs-csi-driver"
+  description = "Policy for EFS CSI driver"
+  
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "elasticfilesystem:DescribeAccessPoints",
+          "elasticfilesystem:DescribeFileSystems",
+          "elasticfilesystem:DescribeMountTargets",
+          "ec2:DescribeAvailabilityZones"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "elasticfilesystem:CreateAccessPoint"
+        ]
+        Resource = "*"
+        Condition = {
+          StringLike = {
+            "aws:RequestTag/efs.csi.aws.com/cluster" = "true"
+          }
+        }
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "elasticfilesystem:DeleteAccessPoint"
+        ]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "aws:ResourceTag/efs.csi.aws.com/cluster" = "true"
+          }
+        }
+      }
+    ]
+  })
+}
+
+# EKS 노드 역할에 EFS CSI 드라이버 정책 연결
+resource "aws_iam_role_policy_attachment" "efs_csi_driver" {
+  policy_arn = aws_iam_policy.efs_csi_driver.arn
+  role       = module.eks.node_role_name
 }

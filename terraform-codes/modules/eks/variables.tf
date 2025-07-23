@@ -196,6 +196,18 @@ variable "common_tags" {
   default     = {}
 }
 
+variable "bastion_security_group_id" {
+  description = "Security group ID of the Bastion host to allow access to EKS API"
+  type        = string
+  default     = ""
+}
+
+variable "enable_bastion_access" {
+  description = "Whether to enable access to the EKS API from the Bastion host"
+  type        = bool
+  default     = true
+}
+
 variable "vpc_id" {
   description = "ID of the VPC where the cluster and workers will be deployed"
   type        = string
