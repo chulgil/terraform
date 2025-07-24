@@ -36,6 +36,8 @@ resource "aws_eks_cluster" "main" {
   )
 }
 
+# OIDC Provider is managed in iam_oidc.tf
+
 # Node Group - Temporarily using managed node group without launch template
 resource "aws_eks_node_group" "node_group" {
   cluster_name    = aws_eks_cluster.main.name

@@ -27,8 +27,13 @@ module "vpc" {
 module "iam" {
   source = "../../modules/iam"
 
-  environment = var.environment
-  common_tags = local.common_tags
+  environment       = var.environment
+  common_tags       = local.common_tags
+  cluster_name      = "${var.environment}-eks-cluster"
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_provider     = module.eks.oidc_provider
+  
+  depends_on = [module.eks]  # Ensure EKS cluster is created first
 }
 
 # EKS Module
@@ -175,54 +180,5 @@ resource "aws_security_group_rule" "eks_nodes_efs" {
   type                    = "ingress"
 }
 
-# EFS CSI 드라이버 IAM 정책
-resource "aws_iam_policy" "efs_csi_driver" {
-  name        = "${var.environment}-efs-csi-driver"
-  description = "Policy for EFS CSI driver"
-  
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "elasticfilesystem:DescribeAccessPoints",
-          "elasticfilesystem:DescribeFileSystems",
-          "elasticfilesystem:DescribeMountTargets",
-          "ec2:DescribeAvailabilityZones"
-        ]
-        Resource = "*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "elasticfilesystem:CreateAccessPoint"
-        ]
-        Resource = "*"
-        Condition = {
-          StringLike = {
-            "aws:RequestTag/efs.csi.aws.com/cluster" = "true"
-          }
-        }
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "elasticfilesystem:DeleteAccessPoint"
-        ]
-        Resource = "*"
-        Condition = {
-          StringEquals = {
-            "aws:ResourceTag/efs.csi.aws.com/cluster" = "true"
-          }
-        }
-      }
-    ]
-  })
-}
-
-# EKS 노드 역할에 EFS CSI 드라이버 정책 연결
-resource "aws_iam_role_policy_attachment" "efs_csi_driver" {
-  policy_arn = aws_iam_policy.efs_csi_driver.arn
-  role       = module.eks.node_role_name
-}
+# IAM 정책은 이제 iam 모듈에서 관리됩니다.
+# 관련 리소스는 modules/iam/main.tf를 참조하세요.

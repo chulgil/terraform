@@ -3,16 +3,17 @@ kind: PersistentVolumeClaim
 metadata:
   name: efs-pv-claim
   namespace: dev-csi-file-pv
-  annotations:
-    volume.beta.kubernetes.io/storage-provisioner: efs.csi.aws.com
-    volume.kubernetes.io/selected-node: ""  # Fargate 호환성을 위해 비워둠
+  # 아래 두 줄의 어노테이션을 제거합니다.
+  # annotations:
+  #   volume.beta.kubernetes.io/storage-provisioner: efs.csi.aws.com
+  #   volume.kubernetes.io/selected-node: ""  # 이 줄이 문제를 일으킬 수 있음
 spec:
   accessModes:
-    - ReadWriteMany
+  - ReadWriteMany
   storageClassName: efs-sc
   resources:
     requests:
       storage: 5Gi
     limits:
-      storage: 10Gi  # 스토리지 상한선 설정 (선택사항)
+      storage: 10Gi
   volumeMode: Filesystem

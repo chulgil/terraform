@@ -13,6 +13,14 @@ spec:
   csi:
     driver: efs.csi.aws.com
     volumeHandle: fs-07187a40ce863a0ec
+    volumeAttributes:
+      provisioningMode: efs-ap
+      directoryPerms: "700"
+      gid: "1000"
+      uid: "1000"
+      basePath: "/"
+    volumeContext:
+      encryptInTransit: "true"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

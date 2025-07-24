@@ -1,76 +1,84 @@
-# EKS Cluster IAM Role
-resource "aws_iam_role" "cluster" {
-  name = "${var.environment}-eks-cluster-role"
+# This file now contains only application-specific IAM resources
+# EKS cluster and node group IAM roles have been moved to the EKS module
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "eks.amazonaws.com"
-        }
-      },
-    ]
-  })
+# IAM Role for EFS CSI Driver (IRSA)
+data "aws_iam_policy_document" "efs_csi_assume_role_policy" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    effect  = "Allow"
 
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(var.oidc_provider, "https://", "")}:sub"
+      values   = ["system:serviceaccount:kube-system:efs-csi-controller-sa"]
+    }
+
+    principals {
+      identifiers = [var.oidc_provider_arn]
+      type        = "Federated"
+    }
+  }
+}
+
+resource "aws_iam_role" "efs_csi_driver" {
+  name               = "${var.environment}-efs-csi-driver-role"
+  assume_role_policy = data.aws_iam_policy_document.efs_csi_assume_role_policy.json
+  
   tags = merge(
-    local.common_tags,
+    var.common_tags,
     {
-      Name = "${var.environment}-eks-cluster-role"
+      Name = "${var.environment}-efs-csi-driver-role"
     }
   )
 }
 
-# Attach EKS Cluster Policy
-resource "aws_iam_role_policy_attachment" "cluster-AmazonEKSClusterPolicy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  role       = aws_iam_role.cluster.name
-}
-
-resource "aws_iam_role_policy_attachment" "cluster-AmazonEKSServicePolicy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
-  role       = aws_iam_role.cluster.name
-}
-
-# EKS Node Group IAM Role
-resource "aws_iam_role" "node" {
-  name = "${var.environment}-eks-node-group-role"
-
-  assume_role_policy = jsonencode({
+# EFS CSI Driver IAM Policy
+resource "aws_iam_policy" "efs_csi_driver" {
+  name        = "${var.environment}-efs-csi-driver-policy"
+  description = "Policy for EFS CSI driver"
+  
+  policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Action = "sts:AssumeRole"
         Effect = "Allow"
-        Principal = {
-          Service = "ec2.amazonaws.com"
+        Action = [
+          "elasticfilesystem:DescribeAccessPoints",
+          "elasticfilesystem:DescribeFileSystems",
+          "elasticfilesystem:DescribeMountTargets",
+          "ec2:DescribeAvailabilityZones"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = ["elasticfilesystem:CreateAccessPoint"]
+        Resource = "*"
+        Condition = {
+          StringLike = {
+            "aws:RequestTag/efs.csi.aws.com/cluster" = "true"
+          }
         }
       },
+      {
+        Effect = "Allow"
+        Action = ["elasticfilesystem:DeleteAccessPoint"]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "aws:ResourceTag/efs.csi.aws.com/cluster" = "true"
+          }
+        }
+      }
     ]
   })
-
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "${var.environment}-eks-node-role"
-    }
-  )
 }
 
-# Attach Node Group Policies
-resource "aws_iam_role_policy_attachment" "node-AmazonEKSWorkerNodePolicy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  role       = aws_iam_role.node.name
+# Attach the policy to the role
+resource "aws_iam_role_policy_attachment" "efs_csi_driver" {
+  role       = aws_iam_role.efs_csi_driver.name
+  policy_arn = aws_iam_policy.efs_csi_driver.arn
 }
 
-resource "aws_iam_role_policy_attachment" "node-AmazonEKS_CNI_Policy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role       = aws_iam_role.node.name
-}
+# Note: EFS CSI Driver policy attachment to node role is now handled in the EKS module
 
-resource "aws_iam_role_policy_attachment" "node-AmazonEC2ContainerRegistryReadOnly" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  role       = aws_iam_role.node.name
-}

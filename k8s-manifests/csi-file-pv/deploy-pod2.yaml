@@ -15,7 +15,7 @@ spec:
   - name: app
     image: centos:8  # Pod 1과 동일한 이미지 버전 사용
     command: ["/bin/sh"]
-    args: ["-c", "while true; do cat /dpod2/out; sleep 10; done"]  # 읽기 전용 테스트를 위해 내용 출력
+    args: ["-c", "mkdir -p /dpod2 && while true; do if [ -f /dpod2/out ]; then cat /dpod2/out; else echo 'Waiting for data...'; fi; sleep 10; done"]  # 읽기 전용 테스트를 위해 내용 출력
     resources:
       requests:
         cpu: "50m"
@@ -40,7 +40,7 @@ spec:
   volumes:
   - name: persistent-storage2
     persistentVolumeClaim:
-      claimName: efs-pv-claim
+      claimName: dynamic-efs-claim
       readOnly: true  # 읽기 전용으로 볼륨 마운트 (안전성 향상)
   nodeSelector:
     kubernetes.io/os: linux  # 리눅스 노드에만 스케줄링

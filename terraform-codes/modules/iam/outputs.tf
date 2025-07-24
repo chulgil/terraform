@@ -1,19 +1,16 @@
-output "cluster_role_arn" {
-  description = "ARN of the EKS cluster IAM role"
-  value       = aws_iam_role.cluster.arn
+# EKS cluster and node role outputs have been moved to the EKS module
+
+output "efs_csi_driver_role_arn" {
+  description = "ARN of the IAM role for EFS CSI driver"
+  value       = aws_iam_role.efs_csi_driver.arn
 }
 
-output "cluster_role_name" {
-  description = "Name of the EKS cluster IAM role"
-  value       = aws_iam_role.cluster.name
+output "efs_csi_driver_role_name" {
+  description = "Name of the IAM role for EFS CSI driver"
+  value       = aws_iam_role.efs_csi_driver.name
 }
 
-output "node_role_arn" {
-  description = "ARN of the EKS node group IAM role"
-  value       = aws_iam_role.node.arn
-}
-
-output "node_role_name" {
-  description = "Name of the EKS node group IAM role"
-  value       = aws_iam_role.node.name
+output "efs_csi_driver_policy_arn" {
+  description = "ARN of the IAM policy for EFS CSI driver"
+  value       = aws_iam_policy.efs_csi_driver.arn
 }

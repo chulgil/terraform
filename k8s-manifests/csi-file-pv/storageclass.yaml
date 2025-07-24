@@ -14,7 +14,7 @@ parameters:
   uid: "1000"
   gid: "1000"
 mountOptions:
-  - tls
-  - iam
-volumeBindingMode: Immediate
+- tls
+- iam
+volumeBindingMode: Immediate # 이 부분을 Immediate에서 변경
 reclaimPolicy: Delete

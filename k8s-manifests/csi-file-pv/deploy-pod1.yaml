@@ -15,7 +15,7 @@ spec:
   - name: app
     image: centos:8  # 특정 버전 태그 사용
     command: ["/bin/sh"]
-    args: ["-c", "while true; do echo $(date -u) >> /dpod1/out; sleep 5; done"]
+    args: ["-c", "mkdir -p /dpod1 && chmod 777 /dpod1 && while true; do echo $(date -u) >> /dpod1/out; sleep 5; done"]
     resources:
       requests:
         cpu: "100m"
@@ -40,7 +40,7 @@ spec:
   volumes:
   - name: persistent-storage1
     persistentVolumeClaim:
-      claimName: efs-pv-claim
+      claimName: dynamic-efs-claim
       readOnly: false  # 읽기/쓰기 모드로 볼륨 마운트
   nodeSelector:
     kubernetes.io/os: linux  # 리눅스 노드에만 스케줄링

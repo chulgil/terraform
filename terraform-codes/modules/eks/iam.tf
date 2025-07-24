@@ -61,6 +61,12 @@ resource "aws_iam_role_policy_attachment" "node-AmazonEC2ContainerRegistryReadOn
   role       = aws_iam_role.node.name
 }
 
+# Attach AmazonElasticFileSystemClientFullAccess policy to allow EFS access
+resource "aws_iam_role_policy_attachment" "node-AmazonElasticFileSystemClientFullAccess" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonElasticFileSystemClientFullAccess"
+  role       = aws_iam_role.node.name
+}
+
 # Additional required policies for EKS nodes
 resource "aws_iam_role_policy_attachment" "node-AmazonSSMManagedInstanceCore" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
