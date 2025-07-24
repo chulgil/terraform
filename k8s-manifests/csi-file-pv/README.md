@@ -112,8 +112,73 @@
      kubectl logs -f deploy-pod2 -n dev-csi-file-pv
      ```
 
+## Static PV 방식 배포 (동적 프로비저닝 문제 시)
+
+동적 프로비저닝에서 "failed to get target node: resource name may not be empty" 에러가 발생하는 경우, Static PV 방식을 사용할 수 있습니다.
+
+### 📋 Static PV 적용 가이드
+
+#### **1단계: 기존 리소스 정리**
+```bash
+# 기존 Pod들 삭제
+kubectl delete pod deploy-pod1 deploy-pod2 -n dev-csi-file-pv
+
+# 기존 PVC 삭제 (동적 프로비저닝 방식)
+kubectl delete pvc efs-pv-claim -n dev-csi-file-pv
+```
+
+#### **2단계: StorageClass 적용**
+```bash
+kubectl apply -f storageclass.yaml
+```
+
+#### **3단계: Static PV와 PVC 적용**
+```bash
+kubectl apply -f static-pv.yaml
+```
+
+#### **4단계: PV와 PVC 상태 확인**
+```bash
+# PV 상태 확인 (Available → Bound로 변경되어야 함)
+kubectl get pv
+
+# PVC 상태 확인 (Pending → Bound로 변경되어야 함)
+kubectl get pvc -n dev-csi-file-pv
+```
+
+#### **5단계: Pod 생성**
+PVC가 `Bound` 상태가 되면:
+```bash
+kubectl apply -f deploy-pod1.yaml
+kubectl apply -f deploy-pod2.yaml
+```
+
+#### **6단계: 최종 상태 확인**
+```bash
+kubectl get pods -n dev-csi-file-pv
+kubectl get pvc -n dev-csi-file-pv
+```
+
+#### **7단계: EFS 마운트 테스트**
+Pod들이 Running 상태가 되면:
+```bash
+kubectl exec -it deploy-pod1 -n dev-csi-file-pv -- ls -la /dpod1
+kubectl exec -it deploy-pod2 -n dev-csi-file-pv -- cat /dpod2/out
+```
+
+### 🔍 Static PV vs 동적 프로비저닝 차이점
+
+| 구분 | 동적 프로비저닝 | Static PV |
+|------|----------------|----------|
+| **EFS Access Point** | 자동 생성 | 사용하지 않음 |
+| **볼륨 바인딩** | CSI 드라이버가 처리 | 수동으로 PV 생성 |
+| **디렉터리 격리** | Access Point별 격리 | EFS 루트 공유 |
+| **권한 관리** | Access Point 정책 | 파일시스템 권한 |
+| **문제 해결** | CSI 드라이버 의존 | 직접 EFS 마운트 |
+
 ## 주의사항
 
-1. **EFS 파일 시스템 ID**: `storageclass.yaml`의 `fileSystemId`를 실제 EFS 파일 시스템 ID로 반드시 업데이트해야 합니다.
+1. **EFS 파일 시스템 ID**: `storageclass.yaml`과 `static-pv.yaml`의 `fileSystemId`를 실제 EFS 파일 시스템 ID로 반드시 업데이트해야 합니다.
 2. **보안 그룹**: EKS 노드의 보안 그룹이 EFS 파일 시스템의 보안 그룹으로부터 NFS 트래픽(포트 2049)을 허용해야 합니다.
 3. **IAM 역할**: EKS 노드에 EFS에 접근할 수 있는 IAM 정책이 연결되어 있어야 합니다.
+4. **Static PV 사용 시**: 여러 Pod가 같은 EFS 루트 디렉터리를 공유하므로 파일 경로 충돌에 주의해야 합니다.
