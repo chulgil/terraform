@@ -84,6 +84,11 @@ output "cluster_role_name" {
   value       = aws_iam_role.cluster.name
 }
 
+output "efs_csi_driver_role_arn" {
+  description = "The ARN of the IAM role for EFS CSI Driver"
+  value       = aws_iam_role.efs_csi_driver.arn
+}
+
 
 output "cluster_certificate_authority_data" {
   description = "Base64 encoded certificate data required to communicate with the cluster"

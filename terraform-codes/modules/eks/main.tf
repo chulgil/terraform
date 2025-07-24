@@ -36,8 +36,6 @@ resource "aws_eks_cluster" "main" {
   )
 }
 
-# OIDC Provider is managed in iam_oidc.tf
-
 # Node Group - Temporarily using managed node group without launch template
 resource "aws_eks_node_group" "node_group" {
   cluster_name    = aws_eks_cluster.main.name
@@ -179,4 +177,26 @@ resource "aws_security_group_rule" "bastion_to_eks_api" {
   source_security_group_id = var.bastion_security_group_id
 
   depends_on = [aws_eks_cluster.main]
+}
+
+# EFS CSI Driver Add-on
+resource "aws_eks_addon" "efs_csi_driver" {
+  cluster_name                = aws_eks_cluster.main.name
+  addon_name                  = "aws-efs-csi-driver"
+  addon_version               = "v1.5.9-eksbuild.1"
+  service_account_role_arn    = aws_iam_role.efs_csi_driver.arn
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
+  
+  tags = merge(
+    var.tags,
+    {
+      Name = "${var.cluster_name}-efs-csi-driver"
+    }
+  )
+  
+  depends_on = [
+    aws_eks_cluster.main,
+    aws_eks_node_group.node_group
+  ]
 }

@@ -23,19 +23,6 @@ module "vpc" {
   common_tags = local.common_tags
 }
 
-# IAM Module
-module "iam" {
-  source = "../../modules/iam"
-
-  environment       = var.environment
-  common_tags       = local.common_tags
-  cluster_name      = "${var.environment}-eks-cluster"
-  oidc_provider_arn = module.eks.oidc_provider_arn
-  oidc_provider     = module.eks.oidc_provider
-  
-  depends_on = [module.eks]  # Ensure EKS cluster is created first
-}
-
 # EKS Module
 module "eks" {
   source = "../../modules/eks"

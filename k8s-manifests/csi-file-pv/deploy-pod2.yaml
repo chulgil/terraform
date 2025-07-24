@@ -40,7 +40,7 @@ spec:
   volumes:
   - name: persistent-storage2
     persistentVolumeClaim:
-      claimName: dynamic-efs-claim
+      claimName: efs-pv-claim
       readOnly: true  # 읽기 전용으로 볼륨 마운트 (안전성 향상)
   nodeSelector:
     kubernetes.io/os: linux  # 리눅스 노드에만 스케줄링
