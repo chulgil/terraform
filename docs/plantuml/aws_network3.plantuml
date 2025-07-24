@@ -1,0 +1,171 @@
+@startuml
+!theme aws-orange
+skinparam backgroundColor #f8f9fa
+skinparam linetype ortho
+left to right direction
+
+skinparam rectangle {
+    BackgroundColor #ffffff
+    BorderColor #232f3e
+    BorderThickness 2
+    FontColor #232f3e
+    FontStyle bold
+}
+
+skinparam package {
+    BackgroundColor #e8f4fd
+    BorderColor #0073bb
+    BorderThickness 2
+    FontColor #0073bb
+    FontStyle bold
+}
+
+skinparam cloud {
+    BackgroundColor #ff9900
+    BorderColor #ff6600
+    FontColor white
+    FontStyle bold
+}
+
+skinparam actor {
+    BackgroundColor #4a90e2
+    BorderColor #2e5c8a
+    FontColor white
+}
+
+title <size:16><b>실습 아키텍처 (EFS CSI 및 File PV 적용)</b></size>
+
+' External Components
+actor "User" as user #4a90e2
+cloud "Internet" as internet #ff9900
+rectangle "Docker\nRegistry" as docker_registry #4a90e2
+
+' AWS Cloud
+rectangle "AWS Cloud" as aws_cloud #ff9900 {
+    
+    ' VPC Container
+    package "VPC (Primary): 172.31.0.0/16" as vpc #e8f4fd {
+        
+        rectangle "🌐 Internet Gateway" as igw #ffa500
+        
+        ' Availability Zone 1
+        package "Availability Zone (ap-northeast-2a)" as az1 #e3f2fd {
+            
+            ' Public Subnet 1
+            package "Public subnet1 (172.31.0.0/20)" as pub_subnet1 #d4edda {
+                rectangle "🖥️ Bastion Server" as bastion #28a745
+            }
+            
+            ' Private Subnet 1
+            package "Private subnet1 (172.31.32.0/20)" as priv_subnet1 #d1ecf1 {
+                
+                ' EKS Cluster
+                rectangle "🚀 EKS Cluster" as eks_cluster #ff6b35 {
+                    rectangle "📦 POD1\n(Writer)" as pod1 #4CAF50
+                    rectangle "📦 POD2\n(Reader)" as pod2_cluster #4CAF50
+                    rectangle "💾 PVC\nefs-pv-claim" as pvc #2196F3
+                    rectangle "🗂️ PV\nefs-pv" as pv #FF9800
+                    rectangle "⚙️ StorageClass\nefs-sc" as storage_class #9C27B0
+                }
+                
+                ' EKS Node Group
+                package "EKS Node Group1" as node_group1 #f0f8ff {
+                    rectangle "🖥️ Worker Node1" as worker_node1 #87CEEB
+                }
+                
+
+            }
+        }
+        
+        ' Availability Zone 2
+        package "Availability Zone (ap-northeast-2c)" as az2 #e3f2fd {
+            
+            ' Public Subnet 3
+            package "Public subnet3 (172.31.16.0/20)" as pub_subnet3 #d4edda {
+                rectangle "🌐 NAT Gateway" as nat_gw #FF6347
+            }
+            
+            ' Private Subnet 3
+            package "Private subnet3 (172.31.48.0/20)" as priv_subnet3 #d1ecf1 {
+                rectangle "🖥️ Worker Node2" as worker_node2 #87CEEB
+            }
+        }
+        
+        ' EFS Volume
+        rectangle "📁 AWS EFS Volume\nfs-07187a40ce863a0ec" as efs_volume #FFD700
+    }
+}
+
+' API Server
+rectangle "🔧 API Server" as api_server #6A5ACD
+
+' Connections - External
+user --> internet : "Inbound Traffic"
+internet --> user : "Outbound Traffic"
+internet --> docker_registry
+
+' Connections - VPC
+internet --> igw
+igw --> pub_subnet1
+igw --> pub_subnet3
+
+' NAT Gateway routing
+nat_gw --> priv_subnet1 : "Router"
+nat_gw --> priv_subnet3
+
+' Bastion connections
+bastion --> worker_node1
+bastion --> worker_node2
+
+' Kubernetes Storage Chain
+pod1 --> pvc : "Write Access"
+pod2_cluster --> pvc : "Read Access"
+pvc --> pv : "Binding"
+pv --> storage_class : "Class Info"
+
+' Pod to Worker Node mounting
+pod1 --> worker_node1 : "Mount /dpod1"
+pod2_cluster --> worker_node2 : "Mount /dpod2"
+
+' EFS Storage connections
+pv --> efs_volume : "Volume Info"
+worker_node1 --> efs_volume : "Attach"
+worker_node2 --> efs_volume : "Attach"
+
+' API Server management
+api_server --> eks_cluster : "Manage"
+
+' Cross-AZ EFS Mount Targets
+efs_volume .up.> az1 : "Mount Target"
+efs_volume .up.> az2 : "Mount Target"
+
+' Pod to EFS direct connections
+pod1 <--> efs_volume : "Write Data"
+pod2_cluster <--> efs_volume : "Read Data"
+
+' Notes with enhanced styling
+note right of efs_volume
+  <b>EFS Features:</b>
+  • Shared storage across AZs
+  • NFS protocol (port 2049)
+  • Multi-mount capability
+  • FileSystem ID: fs-07187a40ce863a0ec
+end note
+
+note right of pvc
+  <b>Static PV Approach:</b>
+  • Bypasses CSI driver issues
+  • Direct EFS mounting
+  • Manual PV creation
+  • VolumeBindingMode: Immediate
+end note
+
+note right of storage_class
+  <b>Configuration:</b>
+  • StorageClass: efs-sc
+  • Provisioner: efs.csi.aws.com
+  • Static PV binding
+  • Cross-AZ availability
+end note
+
+@enduml
