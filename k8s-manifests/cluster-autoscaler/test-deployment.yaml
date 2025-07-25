@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-scale-test
+  namespace: default
+  labels:
+    app: nginx-scale-test
+spec:
+  replicas: 10  # 초기 10개 POD로 Scale-out 테스트
+  selector:
+    matchLabels:
+      app: nginx-scale-test
+  template:
+    metadata:
+      labels:
+        app: nginx-scale-test
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.21
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+      nodeSelector:
+        kubernetes.io/os: linux
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-scale-test-service
+  namespace: default
+spec:
+  selector:
+    app: nginx-scale-test
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  type: ClusterIP

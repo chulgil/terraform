@@ -1,4 +1,4 @@
-@startuml
+@startuml aws_efs_architecture
 !theme aws-orange
 skinparam backgroundColor #f8f9fa
 skinparam linetype ortho
@@ -153,10 +153,10 @@ note right of efs_volume
 end note
 
 note right of pvc
-  <b>Static PV Approach:</b>
-  • Bypasses CSI driver issues
-  • Direct EFS mounting
-  • Manual PV creation
+  <b>Dynamic Provisioning:</b>
+  • EKS Add-on managed CSI driver
+  • Automatic EFS Access Point creation
+  • IRSA-based IAM authentication
   • VolumeBindingMode: Immediate
 end note
 
@@ -164,8 +164,9 @@ note right of storage_class
   <b>Configuration:</b>
   • StorageClass: efs-sc
   • Provisioner: efs.csi.aws.com
-  • Static PV binding
+  • Dynamic PV creation via EKS Add-on
   • Cross-AZ availability
+  • provisioningMode: efs-ap
 end note
 
 @enduml

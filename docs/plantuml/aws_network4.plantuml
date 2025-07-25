@@ -1,0 +1,158 @@
+@startuml aws_eks_autoscaler_architecture
+!theme aws-orange
+skinparam backgroundColor #f8f9fa
+skinparam linetype ortho
+left to right direction
+
+skinparam rectangle {
+    BackgroundColor #ffffff
+    BorderColor #232f3e
+    BorderThickness 2
+    FontColor #232f3e
+    FontStyle bold
+}
+
+skinparam package {
+    BackgroundColor #e8f4fd
+    BorderColor #0073bb
+    BorderThickness 2
+    FontColor #0073bb
+    FontStyle bold
+}
+
+skinparam cloud {
+    BackgroundColor #ff9900
+    BorderColor #ff6600
+    FontColor white
+    FontStyle bold
+}
+
+title <size:16><b>EKS Cluster with Cluster Autoscaler Architecture</b></size>
+
+' External Components
+actor "User" as user #4a90e2
+cloud "Internet" as internet #ff9900
+rectangle "Docker\nRegistry" as docker_registry #4a90e2
+
+' AWS Cloud
+rectangle "AWS Cloud" as aws_cloud #ff9900 {
+    
+    ' VPC Container
+    package "VPC (Primary): 172.31.0.0/16" as vpc #e8f4fd {
+        
+        rectangle "🌐 Internet Gateway" as igw #ffa500
+        rectangle "🔄 Router" as router #9370DB
+        
+        ' Availability Zone 1
+        package "Availability Zone (ap-northeast-2a)" as az1 #e3f2fd {
+            
+            ' Public Subnet 1
+            package "Public subnet1 (172.31.0.0/20)" as pub_subnet1 #d4edda {
+                rectangle "🖥️ Bastion Server (T2)" as bastion #28a745
+            }
+            
+            ' Private Subnet 1
+            package "Private subnet1 (172.31.32.0/20)" as priv_subnet1 #d1ecf1 {
+                
+                ' EKS Node Group 1
+                package "EKS Node Group1" as node_group1 #f0f8ff {
+                    rectangle "🖥️ Worker Node1" as worker_node1 #87CEEB
+                    rectangle "📦 POD1" as pod1 #4CAF50
+                    rectangle "📦 POD2" as pod2 #4CAF50
+                }
+            }
+        }
+        
+        ' Availability Zone 2
+        package "Availability Zone (ap-northeast-2c)" as az2 #e3f2fd {
+            
+            ' Public Subnet 3
+            package "Public subnet3 (172.31.16.0/20)" as pub_subnet3 #d4edda {
+                rectangle "🌐 NAT Gateway" as nat_gw #FF6347
+            }
+            
+            ' Private Subnet 3
+            package "Private subnet3 (172.31.48.0/20)" as priv_subnet3 #d1ecf1 {
+                package "EKS Node Group2" as node_group2 #f0f8ff {
+                    rectangle "🖥️ Worker Node2" as worker_node2 #87CEEB
+                    rectangle "📦 POD3" as pod3 #4CAF50
+                    rectangle "📦 POD4" as pod4 #4CAF50
+                }
+            }
+        }
+        
+        ' EKS Cluster Components
+        rectangle "🚀 EKS Cluster" as eks_cluster #6A5ACD {
+            rectangle "🔧 API Server" as api_server #6A5ACD
+            rectangle "📦 EKS Namespace" as eks_namespace #9C27B0 {
+                rectangle "🛡️ Service" as service #3F51B5
+            }
+        }
+        
+        ' Autoscaling Group
+        rectangle "📈 Autoscaling Group" as asg #FF9800
+    }
+}
+
+' Connections - External
+user --> internet : "Access"
+internet --> user : "Response"
+internet --> docker_registry
+
+' Connections - VPC
+internet --> igw
+igw --> router
+router --> pub_subnet1
+router --> pub_subnet3
+
+' NAT Gateway routing
+nat_gw --> priv_subnet1 : "Router"
+nat_gw --> priv_subnet3
+
+' Bastion connections
+bastion --> worker_node1
+bastion --> worker_node2
+
+' EKS Cluster Connections
+api_server --> eks_namespace : "Manage"
+
+' Service to Pods connections
+service --> pod1 : "Traffic"
+service --> pod2 : "Traffic"
+service --> pod3 : "Traffic"
+service --> pod4 : "Traffic"
+
+' Autoscaling Group connections
+asg --> node_group1 : "Scale Out/In"
+asg --> node_group2 : "Scale Out/In"
+
+' Docker Registry connections
+docker_registry --> worker_node1 : "Pull Images"
+docker_registry --> worker_node2 : "Pull Images"
+
+' Notes with enhanced styling
+note right of asg
+  <b>Cluster Autoscaler:</b>
+  • Monitors unscheduled pods
+  • Scales worker nodes
+  • Works with EKS Node Groups
+  • Supports multiple AZs
+end note
+
+note right of eks_cluster
+  <b>EKS Cluster:</b>
+  • Managed Control Plane
+  • High Availability
+  • Integrated with IAM
+  • Supports multiple node groups
+end note
+
+note right of service
+  <b>Kubernetes Service:</b>
+  • Load balances traffic
+  • Service discovery
+  • Internal DNS
+  • Multiple pod endpoints
+end note
+
+@enduml

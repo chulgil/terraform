@@ -167,5 +167,26 @@ resource "aws_security_group_rule" "eks_nodes_efs" {
   type                    = "ingress"
 }
 
+# Cluster Autoscaler Module
+module "cluster_autoscaler" {
+  source = "../../modules/cluster-autoscaler"
+
+  cluster_name      = module.eks.cluster_name
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  region            = var.region
+  common_tags       = local.common_tags
+  
+  # Cluster Autoscaler 설정
+  autoscaler_image_tag = "v1.28.2"
+  expander            = "least-waste"
+  balance_similar_node_groups = true
+  skip_nodes_with_local_storage = false
+  skip_nodes_with_system_pods = false
+  
+  depends_on = [
+    module.eks
+  ]
+}
+
 # IAM 정책은 이제 iam 모듈에서 관리됩니다.
 # 관련 리소스는 modules/iam/main.tf를 참조하세요.
