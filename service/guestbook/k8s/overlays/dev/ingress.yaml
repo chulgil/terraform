@@ -9,7 +9,7 @@ metadata:
     alb.ingress.kubernetes.io/target-type: ip
     
     # SSL 설정 (cert-manager)
-    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:ap-northeast-2:ACCOUNT_ID:certificate/CERTIFICATE_ID"
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:ap-northeast-2:421114334882:certificate/2012ab5e-6569-43e7-906e-cb5e69799132"
     alb.ingress.kubernetes.io/ssl-redirect: "443"
     
     # Health Check 설정
@@ -24,7 +24,7 @@ metadata:
     
 spec:
   rules:
-  - host: guestbook-dev.your-domain.com
+  - host: guestbook-dev.barodream.com
     http:
       paths:
       - path: /
@@ -36,4 +36,4 @@ spec:
               number: 80
   tls:
   - hosts:
-    - guestbook-dev.your-domain.com 
+    - guestbook-dev.barodream.com 
