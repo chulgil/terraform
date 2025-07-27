@@ -1,53 +1,31 @@
+# Argo Rollouts Development Environment
+# 개발 환경용 Argo Rollouts 설정
+
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-metadata:
-  name: argo-rollouts-dev
-  annotations:
-    config.kubernetes.io/local-config: "true"
-
 # Base 리소스 참조
 resources:
-  - ../../base
-  - ingress.yaml
+- ../../base
+- ingress.yaml  # Dashboard Ingress 추가
 
-# Dev 환경용 레이블
-commonLabels:
-  environment: dev
-  app.kubernetes.io/instance: argo-rollouts-dev
-
-# Dev 환경용 어노테이션
-commonAnnotations:
-  environment: dev
-  deployment.strategy: rolling-update
-
-# 네임스페이스 오버라이드 (dev 전용)
+# 네임스페이스 설정
 namespace: argo-rollouts
 
-# Dev 환경용 이미지 설정
-images:
-  - name: quay.io/argoproj/argo-rollouts
-    newTag: v1.7.2
+# 개발 환경 라벨
+labels:
+- pairs:
+    environment: dev
 
-# Dev 환경용 ConfigMap 생성
-configMapGenerator:
-  - name: argo-rollouts-dev-config
-    literals:
-      - LOG_LEVEL=debug
-      - ARGO_ROLLOUTS_LOGLEVEL=debug
-      - ROLLOUT_THREADS=10
-      - METRICS_PORT=8090
-    options:
-      labels:
-        app.kubernetes.io/name: argo-rollouts-dev-config
-        environment: dev
+# 개발 환경 어노테이션
+commonAnnotations:
+  config.kubernetes.io/target-environment: "development"
 
-# Dev 환경용 패치 적용 (기본 설치를 위해 임시 비활성화)
-patchesStrategicMerge:
-  - patches/configmap-patch.yaml
-  # - patches/controller-patch.yaml
-  # - patches/dashboard-patch.yaml  
-  # - patches/resource-limits.yaml
+# 개발 환경 패치
+patches:
+- path: patches/controller-patch.yaml
+# - path: patches/dashboard-patch.yaml  # 임시 비활성화 (dashboard deployment 없음)
+- path: patches/resource-limits.yaml
 
 # 리소스 변환
 transformers: []

@@ -7,20 +7,21 @@ resources:
 - ingress.yaml
 
 # dev 환경 라벨
-commonLabels:
-  environment: dev
-  branch: dev
+labels:
+- pairs:
+    environment: dev
+    branch: dev
 
 # dev 환경 annotations
 commonAnnotations:
   argocd.argoproj.io/tracking-id: dev-argocd
 
 # dev 환경 패치
-patchesStrategicMerge:
-- patches/configmap-patch.yaml
-- patches/rbac-patch.yaml
-- patches/server-patch.yaml
-- patches/resource-limits.yaml
+patches:
+- path: patches/configmap-patch.yaml
+- path: patches/rbac-patch.yaml
+- path: patches/server-patch.yaml
+- path: patches/resource-limits.yaml
 
 # dev 환경용 ConfigMap 생성
 configMapGenerator:

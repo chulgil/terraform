@@ -13,11 +13,12 @@ resources:
   # - configmap.yaml  # 패치로 처리하여 충돌 방지
 
 # 공통 레이블 적용
-commonLabels:
-  app.kubernetes.io/name: argo-rollouts
-  app.kubernetes.io/part-of: argo
-  app.kubernetes.io/version: v1.7.2
-  app.kubernetes.io/managed-by: kustomize
+labels:
+- pairs:
+    app.kubernetes.io/name: argo-rollouts
+    app.kubernetes.io/part-of: argo
+    app.kubernetes.io/version: v1.7.2
+    app.kubernetes.io/managed-by: kustomize
 
 # 네임스페이스 설정
 namespace: argo-rollouts
@@ -43,14 +44,17 @@ configMapGenerator:
         app.kubernetes.io/component: dashboard
 
 # 패치 적용 (리소스 제한, 보안 설정 등)
-patchesStrategicMerge: []
-  # - patches/resource-limits.yaml
-  # - patches/security-context.yaml
+patches: []
+  # - path: patches/resource-limits.yaml
+  # - path: patches/security-context.yaml
 
 # JSON 패치 (세밀한 수정용)
-patchesJson6902: []
-  # - target:
-  #     version: v1
+# patches: []  # JSON patches would be added here if needed
+  # - patch: |-
+  #     - op: replace
+  #       path: /spec/template/spec/containers/0/resources/limits/memory
+  #       value: 256Mi
+  #   target:
   #     kind: Deployment
   #     name: argo-rollouts
   #   path: patches/deployment-patch.yaml 

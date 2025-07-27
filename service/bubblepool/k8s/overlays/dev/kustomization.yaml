@@ -14,9 +14,10 @@ resources:
 namespace: bubblepool-dev
 
 # 개발 환경 라벨 추가
-commonLabels:
-  environment: dev
-  branch: dev
+labels:
+- pairs:
+    environment: dev
+    branch: dev
 
 # 개발 환경 어노테이션
 commonAnnotations:
@@ -34,11 +35,10 @@ configMapGenerator:
   - ROLLOUT_STRATEGY=blue-green
 
 # 개발 환경 패치
-patchesStrategicMerge:
-- rollout-patch.yaml
+patches:
+- path: rollout-patch.yaml
+  target:
+    kind: Rollout
+    name: bubblepool-rollout
 
-# 이미지 태그 설정 (개발 환경)
-images:
-- name: nginx
-  newName: nginx
-  newTag: 1.22-alpine 
+# 이미지 태그 설정은 base와 patch에서 직접 관리 

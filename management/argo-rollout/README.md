@@ -5,12 +5,13 @@
 ## 📋 **목차**
 
 - [개요](#개요)
+- [현재 상태](#현재-상태)
 - [디렉토리 구조](#디렉토리-구조)
 - [설치 가이드](#설치-가이드)
+- [대시보드 접속](#대시보드-접속)
 - [배포 전략](#배포-전략)
 - [사용법](#사용법)
 - [예제](#예제)
-- [모니터링](#모니터링)
 - [트러블슈팅](#트러블슈팅)
 
 ## 🎯 **개요**
@@ -30,6 +31,31 @@ Argo Rollouts는 Kubernetes에서 고급 배포 전략을 제공하는 Progressi
 - **Canary**: 점진적 배포 (가중치 기반)
 - **Canary with Analysis**: 메트릭 분석 기반 Canary
 
+## 📊 **현재 상태**
+
+### **✅ 설치 완료**
+- Argo Rollouts Controller: `v1.7.2` 정상 실행 중
+- Argo Rollouts Dashboard: `v1.7.2` 정상 실행 중
+- 네임스페이스: `argo-rollouts`
+
+### **🌐 대시보드 접속**
+- **도메인**: https://rollouts-dev.barodream.com/
+- **상태**: ✅ 정상 접속 가능
+- **SSL**: ✅ HTTPS 인증서 적용됨
+- **ALB**: AWS Application Load Balancer 연동
+
+### **📋 현재 Rollout 리소스**
+
+| 이름 | 네임스페이스 | 상태 | 전략 | 설명 |
+|------|-------------|------|------|------|
+| `bubblepool-rollout` | `bubblepool-dev` | ❌ Degraded | BlueGreen | No replica sets (이미지 문제) |
+| `simple-test-rollout` | `bubblepool-dev` | ✅ Healthy | BlueGreen | Revision1 정상 실행 중 |
+
+### **🔧 최근 해결된 문제**
+- ✅ 대시보드 무한 로딩 문제 해결
+- ✅ 네임스페이스 권한 문제 해결
+- ✅ HTTPS 도메인 접속 문제 해결
+
 ## 📁 **디렉토리 구조**
 
 ```
@@ -42,7 +68,7 @@ management/argo-rollout/
 ├── overlays/                      # 환경별 Overlay
 │   └── dev/                       # Dev 환경 설정
 │       ├── kustomization.yaml     # Dev Kustomize 설정
-│       ├── ingress.yaml           # Dashboard Ingress
+│       ├── ingress.yaml           # Dashboard Ingress (HTTPS 도메인)
 │       └── patches/               # Dev 환경 패치
 │           ├── controller-patch.yaml    # Controller 설정
 │           ├── dashboard-patch.yaml     # Dashboard 배포
@@ -51,7 +77,9 @@ management/argo-rollout/
 │   ├── setup.sh                  # 설치 스크립트
 │   ├── dashboard.sh               # Dashboard 접속 스크립트
 │   └── validate.sh                # 설정 검증 스크립트
-├── examples-bluegreen.yaml        # Blue/Green 예제
+├── examples-bluegreen.yaml        # Blue/Green 배포 예제
+├── check-without-kubectl.sh       # kubectl 없이 상태 확인
+├── quick-fix.sh                   # 빠른 문제 해결 스크립트
 └── README.md                      # 이 파일
 ```
 
@@ -78,13 +106,41 @@ chmod +x kubectl-argo-rollouts-linux-amd64
 sudo mv kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
 ```
 
-### **3. Dashboard 접속**
+### **3. 설치 검증**
+```bash
+# 설치 검증 스크립트 실행
+./scripts/validate.sh
+
+# 또는 수동 확인
+kubectl get pods -n argo-rollouts
+kubectl get svc -n argo-rollouts
+kubectl get ingress -n argo-rollouts
+```
+
+## 🌐 **대시보드 접속**
+
+### **1. HTTPS 도메인 접속 (권장)**
+```bash
+# 브라우저에서 직접 접속
+https://rollouts-dev.barodream.com/
+```
+
+### **2. 포트 포워딩 접속**
 ```bash
 # Dashboard 스크립트 실행
 ./scripts/dashboard.sh
 
 # 또는 직접 포트 포워드
 kubectl port-forward svc/argo-rollouts-dashboard -n argo-rollouts 3100:3100
+
+# 브라우저에서 접속
+http://localhost:3100
+```
+
+### **3. 빠른 문제 해결**
+```bash
+# 대시보드 접속 문제 시 실행
+./quick-fix.sh
 ```
 
 ## 🎯 **배포 전략**
@@ -456,3 +512,47 @@ strategy:
 ---
 
 **Argo Rollouts로 안전하고 신뢰할 수 있는 배포를 구현하세요! 🎯** 
+
+## 🔗 **대시보드 접속 방법**
+
+### **방법 1: 포트 포워딩 (권장)**
+
+```bash
+# 포트 포워딩 시작
+kubectl port-forward svc/argo-rollouts-dashboard -n argo-rollouts 3100:3100
+
+# 브라우저에서 접속
+open http://localhost:3100
+```
+
+### **방법 2: HTTPS 도메인 접속**
+
+```bash
+# 1. Ingress 적용
+kubectl apply -f management/argo-rollout/overlays/dev/ingress.yaml
+
+# 2. DNS 설정
+./platform/aws/ap-northeast-2/terraform-codes/scripts/setup-rollouts-dns.sh
+
+# 3. 접속 (DNS 전파 후)
+open https://rollouts-dev.barodream.com
+```
+
+**⚠️ 주의**: HTTPS 접속 시 ALB Host 라우팅 문제로 404 오류가 발생할 수 있습니다. 이 경우 포트 포워딩을 사용하세요.
+
+## 📊 **대시보드 사용법**
+
+1. **네임스페이스 선택**: `bubblepool-dev`
+2. **Rollout 확인**: `bubblepool-rollout`
+3. **배포 진행 상황**: 실시간 Blue/Green 상태 확인
+
+## 🔧 **다음번 적용 방법**
+
+```bash
+# 전체 설정 한번에 적용
+kubectl apply -f management/argo-rollout/overlays/dev/ingress.yaml
+./platform/aws/ap-northeast-2/terraform-codes/scripts/setup-rollouts-dns.sh
+
+# 포트 포워딩으로 즉시 접속
+kubectl port-forward svc/argo-rollouts-dashboard -n argo-rollouts 3100:3100
+``` 

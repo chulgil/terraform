@@ -13,10 +13,11 @@ resources:
 # - analysis-template.yaml
 
 # 공통 라벨
-commonLabels:
-  app: bubblepool
-  app.kubernetes.io/name: bubblepool
-  app.kubernetes.io/part-of: bubblepool-suite
+labels:
+- pairs:
+    app: bubblepool
+    app.kubernetes.io/name: bubblepool
+    app.kubernetes.io/part-of: bubblepool-suite
 
 # 공통 어노테이션
 commonAnnotations:
