@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-server
+  namespace: argocd
+spec:
+  template:
+    spec:
+      containers:
+      - name: argocd-server
+        # dev 환경 특화 설정
+        args:
+        - argocd-server
+        - --insecure  # dev 환경에서는 HTTP 허용
+        - --staticassets
+        - /shared/app
+        - --repo-server
+        - argocd-repo-server:8081
+        - --dex-server
+        - http://argocd-dex-server:5556
+        - --logformat
+        - json
+        - --loglevel
+        - debug  # dev 환경에서는 debug 로그
+        
+        # 환경 변수 추가
+        env:
+        - name: ARGOCD_SERVER_INSECURE
+          value: "true"
+        - name: ARGOCD_SERVER_ROOTPATH
+          value: "/"
+        - name: ARGOCD_LOG_LEVEL
+          value: "debug"
+        - name: ARGOCD_ENV
+          value: "dev"
+        
+        # 헬스체크 조정 (dev 환경)
+        livenessProbe:
+          httpGet:
+            path: /healthz?full=true
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+        
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5 

@@ -1,0 +1,101 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-root-app
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: root-app
+    environment: dev
+    branch: dev
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/your-org/platform  # 실제 리포지토리 URL로 변경
+    targetRevision: dev  # dev 브랜치
+    path: management/argo-cd/applications/projects
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+# Default Project for Dev Environment
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: dev-project
+  namespace: argocd
+  labels:
+    environment: dev
+    branch: dev
+spec:
+  description: Development environment project
+  
+  # 소스 저장소 허용 목록
+  sourceRepos:
+  - 'https://github.com/your-org/platform'  # 플랫폼 저장소
+  - 'https://github.com/your-org/*'         # 조직 내 모든 저장소
+  - 'https://helm.github.io/*'              # Helm 공식 차트
+  - 'https://prometheus-community.github.io/helm-charts'
+  - 'https://grafana.github.io/helm-charts'
+  
+  # 배포 대상 클러스터
+  destinations:
+  - namespace: '*'
+    server: https://kubernetes.default.svc
+  
+  # 클러스터 리소스 허용 (dev 환경에서는 제한적 허용)
+  clusterResourceWhitelist:
+  - group: ''
+    kind: Namespace
+  - group: 'rbac.authorization.k8s.io'
+    kind: ClusterRole
+  - group: 'rbac.authorization.k8s.io'
+    kind: ClusterRoleBinding
+  - group: 'apiextensions.k8s.io'
+    kind: CustomResourceDefinition
+  
+  # 네임스페이스 리소스 허용
+  namespaceResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  
+  # 네임스페이스 제한 (dev 환경)
+  namespaceResourceBlacklist:
+  - group: ''
+    kind: Secret
+    name: '*-prod-*'  # prod 관련 시크릿 차단
+  
+  # RBAC 설정
+  roles:
+  - name: dev-admin
+    description: Development environment administrator
+    policies:
+    - p, proj:dev-project:dev-admin, applications, *, dev-project/*, allow
+    - p, proj:dev-project:dev-admin, repositories, *, *, allow
+    groups:
+    - developers
+    - devops
+  
+  - name: dev-readonly
+    description: Development environment read-only access
+    policies:
+    - p, proj:dev-project:dev-readonly, applications, get, dev-project/*, allow
+    - p, proj:dev-project:dev-readonly, logs, get, dev-project/*, allow
+    groups:
+    - viewers
+    - qa-team 

@@ -1,0 +1,36 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# 네임스페이스 설정
+namespace: argocd
+
+# 원격 ArgoCD 공식 설치 매니페스트
+resources:
+- namespace.yaml
+- https://raw.githubusercontent.com/argoproj/argo-cd/v2.9.3/manifests/install.yaml
+- configmap.yaml
+- rbac-config.yaml
+
+# 공통 라벨
+commonLabels:
+  app.kubernetes.io/instance: argocd
+  environment: dev
+
+# ConfigMap과 Secret 대체
+patchesStrategicMerge:
+- |
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: argocd-cm
+    namespace: argocd
+  data:
+    url: http://argocd-server.argocd.svc.cluster.local
+
+# 리소스 이름 접두사 (dev 환경)
+namePrefix: dev-
+
+# 이미지 태그 고정 (안정성을 위해)
+images:
+- name: quay.io/argoproj/argocd
+  newTag: v2.9.3 

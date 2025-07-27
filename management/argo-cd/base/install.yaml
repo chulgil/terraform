@@ -1,0 +1,16 @@
+# ArgoCD 공식 설치 매니페스트
+# 이 파일은 공식 ArgoCD 설치 매니페스트를 가져와서 사용합니다.
+# 실제 운영에서는 특정 버전을 고정하여 사용하는 것을 권장합니다.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-install-source
+  namespace: argocd
+data:
+  # ArgoCD 버전 관리
+  version: "v2.9.3"
+  install-url: "https://raw.githubusercontent.com/argoproj/argo-cd/v2.9.3/manifests/install.yaml"
+  
+---
+# 참고: 실제 설치는 kustomization.yaml에서 원격 리소스로 가져옵니다. 

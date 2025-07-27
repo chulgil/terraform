@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/component: server
+    app.kubernetes.io/name: argocd-rbac-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  # 기본 정책: 읽기 전용
+  policy.default: role:readonly
+  
+  # RBAC 정책
+  policy.csv: |
+    # 관리자 역할
+    p, role:admin, applications, *, */*, allow
+    p, role:admin, clusters, *, *, allow
+    p, role:admin, repositories, *, *, allow
+    p, role:admin, projects, *, *, allow
+    
+    # 개발자 역할 (dev 환경 전용)
+    p, role:developer, applications, get, */*, allow
+    p, role:developer, applications, sync, */dev, allow
+    p, role:developer, applications, action/*, */dev, allow
+    p, role:developer, logs, get, */*, allow
+    p, role:developer, exec, create, */dev, allow
+    
+    # 읽기 전용 역할
+    p, role:readonly, applications, get, */*, allow
+    p, role:readonly, logs, get, */*, allow
+    p, role:readonly, projects, get, *, allow
+    
+    # 그룹 매핑 (실제 환경에서는 OIDC/LDAP 그룹과 연동)
+    g, argocd-admins, role:admin
+    g, developers, role:developer
+    g, viewers, role:readonly
+  
+  # 스코프 설정
+  scopes: '[groups]' 

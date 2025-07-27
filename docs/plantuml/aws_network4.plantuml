@@ -1,4 +1,5 @@
 @startuml aws_eks_autoscaler_architecture
+
 !theme aws-orange
 skinparam backgroundColor #f8f9fa
 skinparam linetype ortho
