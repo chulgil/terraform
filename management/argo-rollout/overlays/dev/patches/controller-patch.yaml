@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argo-rollouts
+  namespace: argo-rollouts
+spec:
+  replicas: 1  # Dev 환경에서는 1개로 충분
+  template:
+    spec:
+      containers:
+        - name: argo-rollouts
+          # Dev 환경용 리소스 제한
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 250m
+              memory: 256Mi
+          # Dev 환경용 환경 변수
+          env:
+            - name: ARGO_ROLLOUTS_LOGLEVEL
+              value: "debug"
+            - name: ROLLOUT_THREADS
+              value: "10"
+            - name: METRICS_PORT
+              value: "8090"
+            - name: LEADER_ELECT
+              value: "false"  # Dev에서는 리더 선출 비활성화
+          # 추가 인수 설정
+          args:
+            - --loglevel=debug
+            - --kloglevel=4
+            - --rollout-threads=10
+            - --metrics-port=8090
+            - --leader-elect=false
+          # Liveness 및 Readiness Probe 조정
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: 8090
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 4
+            failureThreshold: 3 

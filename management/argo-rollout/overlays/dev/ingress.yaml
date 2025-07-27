@@ -1,0 +1,71 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argo-rollouts-dashboard-ingress
+  namespace: argo-rollouts
+  labels:
+    app.kubernetes.io/name: argo-rollouts-dashboard-ingress
+    app.kubernetes.io/component: dashboard
+    environment: dev
+  annotations:
+    # ALB Controller 설정
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/group.name: argo-dev
+    
+    # SSL/TLS 설정
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-2:ACCOUNT_ID:certificate/CERTIFICATE_ID
+    
+    # 보안 설정
+    alb.ingress.kubernetes.io/security-groups: sg-xxxxxxxx
+    alb.ingress.kubernetes.io/subnets: subnet-xxxxxxxx, subnet-yyyyyyyy
+    
+    # 헬스체크 설정
+    alb.ingress.kubernetes.io/healthcheck-path: /rollouts
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-port: traffic-port
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '3'
+spec:
+  rules:
+    - host: rollouts-dev.your-domain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argo-rollouts-dashboard
+                port:
+                  number: 3100
+  tls:
+    - hosts:
+        - rollouts-dev.your-domain.com
+
+---
+# NodePort Service (ALB 백업용)
+apiVersion: v1
+kind: Service
+metadata:
+  name: argo-rollouts-dashboard-nodeport
+  namespace: argo-rollouts
+  labels:
+    app.kubernetes.io/name: argo-rollouts-dashboard-nodeport
+    app.kubernetes.io/component: dashboard
+    environment: dev
+spec:
+  type: NodePort
+  ports:
+    - port: 3100
+      targetPort: 3100
+      nodePort: 30100
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: argo-rollouts-dashboard
+    app.kubernetes.io/component: dashboard 

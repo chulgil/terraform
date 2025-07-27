@@ -1,0 +1,55 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: argo-rollouts-dev
+  annotations:
+    config.kubernetes.io/local-config: "true"
+
+# Base 리소스 참조
+resources:
+  - ../../base
+  - ingress.yaml
+
+# Dev 환경용 레이블
+commonLabels:
+  environment: dev
+  app.kubernetes.io/instance: argo-rollouts-dev
+
+# Dev 환경용 어노테이션
+commonAnnotations:
+  environment: dev
+  deployment.strategy: rolling-update
+
+# 네임스페이스 오버라이드 (dev 전용)
+namespace: argo-rollouts
+
+# Dev 환경용 이미지 설정
+images:
+  - name: quay.io/argoproj/argo-rollouts
+    newTag: v1.7.2
+
+# Dev 환경용 ConfigMap 생성
+configMapGenerator:
+  - name: argo-rollouts-dev-config
+    literals:
+      - LOG_LEVEL=debug
+      - ARGO_ROLLOUTS_LOGLEVEL=debug
+      - ROLLOUT_THREADS=10
+      - METRICS_PORT=8090
+    options:
+      labels:
+        app.kubernetes.io/name: argo-rollouts-dev-config
+        environment: dev
+
+# Dev 환경용 패치 적용
+patchesStrategicMerge:
+  - patches/controller-patch.yaml
+  - patches/dashboard-patch.yaml
+  - patches/resource-limits.yaml
+
+# 리소스 변환
+transformers: []
+
+# 생성기
+generators: [] 

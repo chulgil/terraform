@@ -1,0 +1,11 @@
+# Argo Rollouts Installation Manifest
+# This file is used by Kustomize to fetch the official Argo Rollouts installation manifest
+# The actual installation manifest will be fetched from the official Argo Rollouts repository
+
+# Official Argo Rollouts installation manifest URL:
+# https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
+
+# This placeholder file indicates that the manifest should be downloaded during Kustomize build
+# Usage in kustomization.yaml:
+#   resources:
+#     - https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml 

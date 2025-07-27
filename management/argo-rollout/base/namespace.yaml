@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argo-rollouts
+  labels:
+    name: argo-rollouts
+    app.kubernetes.io/name: argo-rollouts
+    app.kubernetes.io/part-of: argo
+    app.kubernetes.io/component: rollouts 
