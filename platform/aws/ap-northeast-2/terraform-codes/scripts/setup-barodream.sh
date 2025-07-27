@@ -119,6 +119,7 @@ if [ -f "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml" ]; the
     sed -i.tmp "s/bubblepool-dev\.your-domain\.com/bubblepool-dev.barodream.com/g" "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml"
     sed -i.tmp "s|arn:aws:acm:ap-northeast-2:ACCOUNT_ID:certificate/CERTIFICATE_ID|$CERT_ARN|g" "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml"
     rm -f "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml.tmp"
+    print_info "BubblePool Ingress 업데이트 완료"
 else
     print_warning "BubblePool Ingress 파일을 찾을 수 없습니다: ${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml"
 fi
@@ -129,6 +130,7 @@ if [ -f "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml" ]; then
     sed -i.tmp "s/guestbook-dev\.your-domain\.com/guestbook-dev.barodream.com/g" "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml"
     sed -i.tmp "s|arn:aws:acm:ap-northeast-2:ACCOUNT_ID:certificate/CERTIFICATE_ID|$CERT_ARN|g" "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml"
     rm -f "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml.tmp"
+    print_info "GuestBook Ingress 업데이트 완료"
 else
     print_warning "GuestBook Ingress 파일을 찾을 수 없습니다: ${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml"
 fi
@@ -155,7 +157,7 @@ ALB_DNS=$(kubectl get ingress bubblepool-ingress -n bubblepool-dev -o jsonpath='
 if [ "$ALB_DNS" = "ALB_NOT_READY" ]; then
     echo -e "${RED}[오류]${NC} ALB가 아직 준비되지 않았습니다."
     echo "먼저 애플리케이션을 배포하세요:"
-    echo "kubectl apply -f management/argo-cd/applications/projects/dev-apps.yaml"
+    echo "kubectl apply -f ../../../../management/argo-cd/applications/projects/dev-apps.yaml"
     exit 1
 fi
 
@@ -244,16 +246,10 @@ echo ""
 echo "6. ✅ 접속 테스트:"
 echo "   https://bubblepool-dev.barodream.com"
 echo "   https://guestbook-dev.barodream.com"
-
-
-🌐 도메인 설정:
-- 도메인: barodream.com (name.com에서 구매)
-- 인증서: $CERT_ARN
-- BubblePool: https://bubblepool-dev.barodream.com  
-- GuestBook: https://guestbook-dev.barodream.com
-
-🔧 설정 내용:
-- Route 53 호스팅 영역 생성: $ZONE_ID
-- SSL 인증서 요청 및 설정
-- Ingress 호스트명 업데이트
-- DNS 레코드 생성 스크립트 추가
+echo ""
+echo "💡 변경사항을 Git에 커밋하려면 수동으로 진행하세요:"
+echo "   cd ../../../../"
+echo "   git add service/*/k8s/overlays/dev/ingress.yaml"
+echo "   git add platform/aws/ap-northeast-2/terraform-codes/scripts/setup-barodream-dns.sh"
+echo "   git commit -m 'feat: barodream.com 도메인 설정 완료'"
+echo "   git push origin main"

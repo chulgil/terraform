@@ -79,6 +79,7 @@ if [ -f "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml" ]; the
     sed -i.tmp "s/bubblepool-dev\.your-domain\.com/bubblepool-dev.$DOMAIN/g" "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml"
     sed -i.tmp "s|arn:aws:acm:ap-northeast-2:ACCOUNT_ID:certificate/CERTIFICATE_ID|$CERT_ARN|g" "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml"
     rm -f "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml.tmp"
+    print_info "BubblePool Ingress 업데이트 완료"
 else
     print_error "BubblePool Ingress 파일을 찾을 수 없습니다"
     exit 1
@@ -90,6 +91,7 @@ if [ -f "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml" ]; then
     sed -i.tmp "s/guestbook-dev\.your-domain\.com/guestbook-dev.$DOMAIN/g" "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml"
     sed -i.tmp "s|arn:aws:acm:ap-northeast-2:ACCOUNT_ID:certificate/CERTIFICATE_ID|$CERT_ARN|g" "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml"
     rm -f "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml.tmp"
+    print_info "GuestBook Ingress 업데이트 완료"
 else
     print_error "GuestBook Ingress 파일을 찾을 수 없습니다"
     exit 1
@@ -129,7 +131,7 @@ ALB_DNS=\$(kubectl get ingress bubblepool-ingress -n bubblepool-dev -o jsonpath=
 
 if [ "\$ALB_DNS" = "ALB_NOT_READY" ]; then
     echo "❌ ALB가 아직 준비되지 않았습니다. 먼저 애플리케이션을 배포하세요."
-    echo "실행: kubectl apply -f management/argo-cd/applications/projects/dev-apps.yaml"
+    echo "실행: kubectl apply -f ../../../../management/argo-cd/applications/projects/dev-apps.yaml"
     exit 1
 fi
 
@@ -185,47 +187,14 @@ EOF
 chmod +x ./setup-dns.sh
 print_info "DNS 설정 스크립트가 생성되었습니다: ./setup-dns.sh"
 
-# Git 커밋 옵션
-print_step "💾 Git 커밋"
-echo "변경사항을 커밋하시겠습니까? (y/n)"
-read -r commit_choice
-
-if [ "$commit_choice" = "y" ] || [ "$commit_choice" = "Y" ]; then
-    # 프로젝트 루트로 이동해서 Git 작업
-    cd "$PROJECT_ROOT"
-    git add service/*/k8s/overlays/dev/ingress.yaml platform/aws/ap-northeast-2/terraform-codes/scripts/setup-dns.sh
-    git commit -m "feat: $DOMAIN 도메인으로 GitOps 애플리케이션 구성
-
-🌐 도메인 설정:
-- 도메인: $DOMAIN  
-- 인증서: $CERT_ARN
-- BubblePool: https://bubblepool-dev.$DOMAIN
-- GuestBook: https://guestbook-dev.$DOMAIN
-
-🔧 업데이트 내용:
-- 두 애플리케이션의 Ingress 호스트명 업데이트
-- SSL 인증서 ARN 설정
-- DNS 설정 자동화 스크립트 생성
-- Kustomize 설정 검증 완료
-
-📝 다음 단계:
-1. 애플리케이션 배포: kubectl apply -f management/argo-cd/applications/projects/dev-apps.yaml
-2. DNS 설정: ./scripts/setup-dns.sh
-3. SSL 확인: curl -I https://bubblepool-dev.$DOMAIN"
-    
-    print_info "변경사항이 Git에 커밋되었습니다"
-else
-    print_warning "변경사항이 커밋되지 않았습니다. 수동으로 커밋하는 것을 잊지 마세요."
-fi
-
 print_step "🎉 도메인 설정이 완료되었습니다!"
 echo ""
 echo "📋 다음 단계:"
 echo "1. 🚀 애플리케이션 배포 (아직 배포하지 않은 경우):"
-echo "   kubectl apply -f management/argo-cd/applications/projects/dev-apps.yaml"
+echo "   kubectl apply -f ../../../../management/argo-cd/applications/projects/dev-apps.yaml"
 echo ""
 echo "2. 🌐 DNS 레코드 설정:"
-echo "   ./scripts/setup-dns.sh"
+echo "   ./setup-dns.sh"
 echo ""
 echo "3. ✅ 배포 확인:"
 echo "   curl -I https://bubblepool-dev.$DOMAIN"
@@ -233,4 +202,11 @@ echo "   curl -I https://guestbook-dev.$DOMAIN"
 echo ""
 echo "4. 🔍 ArgoCD 모니터링:"
 echo "   kubectl port-forward -n argocd svc/argocd-server 8080:80"
-echo "   브라우저에서 http://localhost:8080 열기" 
+echo "   브라우저에서 http://localhost:8080 열기"
+echo ""
+echo "💡 변경사항을 Git에 커밋하려면 수동으로 진행하세요:"
+echo "   cd ../../../../"
+echo "   git add service/*/k8s/overlays/dev/ingress.yaml"
+echo "   git add platform/aws/ap-northeast-2/terraform-codes/scripts/setup-dns.sh"
+echo "   git commit -m 'feat: $DOMAIN 도메인 설정 완료'"
+echo "   git push origin main" 
