@@ -395,7 +395,7 @@ metadata:
   name: myapp-rollout
 spec:
   source:
-    repoURL: https://github.com/myorg/myapp
+    repoURL: https://github.com/chulgil/myapp
     targetRevision: main
     path: k8s/rollout
   destination:

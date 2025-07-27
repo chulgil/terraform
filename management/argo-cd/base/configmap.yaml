@@ -10,9 +10,9 @@ metadata:
 data:
   # Git 저장소 설정
   repositories: |
-    - url: https://github.com/your-org/platform
+    - url: https://github.com/chulgil/terraform
       type: git
-      name: platform-repo
+      name: terraform-repo
   
   # 애플리케이션 기본 설정
   application.instanceLabelKey: argocd.argoproj.io/instance

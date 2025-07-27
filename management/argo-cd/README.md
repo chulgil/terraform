@@ -147,7 +147,7 @@ metadata:
   namespace: argocd
 spec:
   source:
-    repoURL: https://github.com/your-org/platform
+    repoURL: https://github.com/chulgil/terraform
     targetRevision: dev
     path: management/argo-cd/applications
   destination:
@@ -164,7 +164,7 @@ metadata:
   namespace: argocd
 spec:
   source:
-    repoURL: https://github.com/your-org/bubblepool
+    repoURL: https://github.com/chulgil/bubblepool
     targetRevision: dev
     path: k8s/overlays/dev
   destination:

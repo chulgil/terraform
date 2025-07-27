@@ -12,7 +12,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/your-org/platform  # 실제 리포지토리 URL로 변경
+    repoURL: https://github.com/chulgil/terraform  # 실제 리포지토리 URL
     targetRevision: dev  # dev 브랜치
     path: management/argo-cd/applications/projects
   destination:
@@ -47,8 +47,8 @@ spec:
   
   # 소스 저장소 허용 목록
   sourceRepos:
-  - 'https://github.com/your-org/platform'  # 플랫폼 저장소
-  - 'https://github.com/your-org/*'         # 조직 내 모든 저장소
+  - 'https://github.com/chulgil/terraform'  # 플랫폼 저장소
+  - 'https://github.com/chulgil/*'          # 조직 내 모든 저장소
   - 'https://helm.github.io/*'              # Helm 공식 차트
   - 'https://prometheus-community.github.io/helm-charts'
   - 'https://grafana.github.io/helm-charts'
