@@ -75,9 +75,12 @@ $RECYCLE.BIN/
 # ============================================
 # Terraformer
 generated/
-aws/
-azure/
-google/
+/aws/
+/azure/
+/google/
+terraformer/aws/
+terraformer/azure/
+terraformer/google/
 
 # Terragrunt
 .terragrunt-cache/
