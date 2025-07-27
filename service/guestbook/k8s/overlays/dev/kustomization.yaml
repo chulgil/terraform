@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: guestbook-dev
+
+# Base 리소스 참조
+bases:
+- ../../base
+
+# Dev 환경 특화 설정
+namespace: guestbook-dev
+
+commonLabels:
+  environment: dev
+  branch: dev
+
+# Dev 환경용 리소스 추가
+resources:
+- ingress.yaml
+- namespace.yaml
+
+# Dev 환경 패치
+patchesStrategicMerge:
+- deployment-patch.yaml
+
+# Dev 환경 이미지
+images:
+- name: gcr.io/google-samples/gb-frontend
+  newTag: "v4" 

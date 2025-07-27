@@ -1,0 +1,74 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bubblepool-dev
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: bubblepool
+    environment: dev
+    project: bubblepool
+    managed-by: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: dev-project
+  source:
+    # 하이브리드 패턴: 동일 저장소 내 service 디렉토리
+    repoURL: https://github.com/chulgil/terraform
+    targetRevision: main
+    path: service/bubblepool/k8s/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: bubblepool-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: guestbook-dev
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: guestbook
+    environment: dev
+    project: guestbook
+    managed-by: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: dev-project
+  source:
+    # 하이브리드 패턴: 동일 저장소 내 service 디렉토리
+    repoURL: https://github.com/chulgil/terraform
+    targetRevision: main
+    path: service/guestbook/k8s/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: guestbook-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10 

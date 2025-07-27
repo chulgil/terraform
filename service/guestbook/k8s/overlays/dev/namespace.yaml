@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: guestbook-dev
+  labels:
+    name: guestbook-dev
+    environment: dev
+    project: guestbook
+    managed-by: argocd 

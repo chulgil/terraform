@@ -1,0 +1,64 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bubblepool-dev
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: bubblepool
+    environment: dev
+    project: bubblepool
+spec:
+  project: dev-project
+  source:
+    # 개별 애플리케이션 저장소
+    repoURL: https://github.com/chulgil/bubblepool
+    targetRevision: dev
+    path: k8s/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: bubblepool-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application  
+metadata:
+  name: guestbook-dev
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: guestbook
+    environment: dev
+    project: guestbook
+spec:
+  project: dev-project
+  source:
+    # 다른 개별 애플리케이션 저장소
+    repoURL: https://github.com/chulgil/guestbook
+    targetRevision: dev
+    path: k8s/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: guestbook-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m 

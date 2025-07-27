@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bubblepool-config
+data:
+  app.properties: |
+    app.name=BubblePool
+    app.description=A demo application for GitOps - Development
+    app.env=development
+    debug.enabled=true
+    log.level=debug
+    
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>BubblePool - Development</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 40px; background: #e8f5e8; }
+            .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+            .header { text-align: center; color: #27ae60; }
+            .dev-banner { background: #f39c12; color: white; padding: 10px; text-align: center; 
+                         margin-bottom: 20px; border-radius: 5px; }
+            .bubble { display: inline-block; width: 20px; height: 20px; background: #27ae60; 
+                     border-radius: 50%; margin: 5px; animation: float 2s ease-in-out infinite; }
+            @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+        </style>
+    </head>
+    <body>
+        <div class="dev-banner">🚧 DEVELOPMENT ENVIRONMENT 🚧</div>
+        <div class="container">
+            <h1 class="header">🫧 BubblePool Application</h1>
+            <div class="bubbles">
+                <span class="bubble"></span>
+                <span class="bubble"></span>
+                <span class="bubble"></span>
+                <span class="bubble"></span>
+                <span class="bubble"></span>
+            </div>
+            <p>Environment: <strong>Development</strong></p>
+            <p>Version: <strong>v1.0.0-dev</strong></p>
+            <p>Debug Mode: <strong>Enabled</strong></p>
+            <p>GitOps Demo Application running on Kubernetes!</p>
+            <p><em>This is a development environment for testing purposes.</em></p>
+        </div>
+    </body>
+    </html> 

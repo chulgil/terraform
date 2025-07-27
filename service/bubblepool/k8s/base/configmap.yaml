@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bubblepool-config
+  labels:
+    app: bubblepool
+data:
+  app.properties: |
+    app.name=BubblePool
+    app.description=A demo application for GitOps
+    app.env=base
+    
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>BubblePool</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 40px; background: #f0f8ff; }
+            .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+            .header { text-align: center; color: #2e86de; }
+            .bubble { display: inline-block; width: 20px; height: 20px; background: #54a0ff; 
+                     border-radius: 50%; margin: 5px; animation: float 2s ease-in-out infinite; }
+            @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1 class="header">🫧 BubblePool Application</h1>
+            <div class="bubbles">
+                <span class="bubble"></span>
+                <span class="bubble"></span>
+                <span class="bubble"></span>
+                <span class="bubble"></span>
+                <span class="bubble"></span>
+            </div>
+            <p>Environment: <strong>{{APP_ENV}}</strong></p>
+            <p>Version: <strong>{{APP_VERSION}}</strong></p>
+            <p>GitOps Demo Application running on Kubernetes!</p>
+        </div>
+    </body>
+    </html> 

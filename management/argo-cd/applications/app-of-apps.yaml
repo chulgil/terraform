@@ -13,7 +13,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/chulgil/terraform  # 실제 리포지토리 URL
-    targetRevision: dev  # dev 브랜치
+    targetRevision: main  # main 브랜치 (현재 작업 중인 브랜치)
     path: management/argo-cd/applications/projects
   destination:
     server: https://kubernetes.default.svc

@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bubblepool
+spec:
+  replicas: 1  # Dev 환경에서는 리소스 절약
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "80"
+        prometheus.io/path: "/"
+    spec:
+      containers:
+      - name: bubblepool
+        env:
+        - name: APP_ENV
+          value: "development"
+        - name: DEBUG_MODE
+          value: "true"
+        resources:
+          requests:
+            memory: "32Mi"  # Dev 환경 리소스 축소
+            cpu: "25m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m" 

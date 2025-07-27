@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: bubblepool-base
+
+commonLabels:
+  app.kubernetes.io/name: bubblepool
+  app.kubernetes.io/part-of: bubblepool-suite
+
+resources:
+- deployment.yaml
+- service.yaml
+- configmap.yaml
+
+namespace: bubblepool
+
+# 공통 이미지 태그
+images:
+- name: nginx
+  newTag: "1.21-alpine" 
