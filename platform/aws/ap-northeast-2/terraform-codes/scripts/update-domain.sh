@@ -51,38 +51,60 @@ fi
 print_info "도메인: $DOMAIN"
 print_info "인증서 ARN: $CERT_ARN"
 
+# 프로젝트 루트 경로 설정 (terraform-codes에서 4단계 위로)
+PROJECT_ROOT="../../../../"
+
 # 원본 파일 백업
 print_step "📋 백업 생성 중..."
-backup_dir="backups/$(date +%Y%m%d_%H%M%S)"
+backup_dir="${PROJECT_ROOT}backups/$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$backup_dir"
 
-cp service/bubblepool/k8s/overlays/dev/ingress.yaml "$backup_dir/bubblepool-ingress.yaml.bak"
-cp service/guestbook/k8s/overlays/dev/ingress.yaml "$backup_dir/guestbook-ingress.yaml.bak"
+if [ -f "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml" ]; then
+    cp "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml" "$backup_dir/bubblepool-ingress.yaml.bak"
+else
+    print_warning "BubblePool Ingress 파일을 찾을 수 없습니다"
+fi
+
+if [ -f "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml" ]; then
+    cp "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml" "$backup_dir/guestbook-ingress.yaml.bak"
+else
+    print_warning "GuestBook Ingress 파일을 찾을 수 없습니다"
+fi
 
 print_info "백업이 $backup_dir 에 생성되었습니다"
 
 # BubblePool Ingress 업데이트
 print_step "🫧 BubblePool Ingress 업데이트 중..."
-sed -i.tmp "s/bubblepool-dev\.your-domain\.com/bubblepool-dev.$DOMAIN/g" service/bubblepool/k8s/overlays/dev/ingress.yaml
-sed -i.tmp "s|arn:aws:acm:ap-northeast-2:ACCOUNT_ID:certificate/CERTIFICATE_ID|$CERT_ARN|g" service/bubblepool/k8s/overlays/dev/ingress.yaml
-rm service/bubblepool/k8s/overlays/dev/ingress.yaml.tmp
+if [ -f "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml" ]; then
+    sed -i.tmp "s/bubblepool-dev\.your-domain\.com/bubblepool-dev.$DOMAIN/g" "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml"
+    sed -i.tmp "s|arn:aws:acm:ap-northeast-2:ACCOUNT_ID:certificate/CERTIFICATE_ID|$CERT_ARN|g" "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml"
+    rm -f "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml.tmp"
+else
+    print_error "BubblePool Ingress 파일을 찾을 수 없습니다"
+    exit 1
+fi
 
 # GuestBook Ingress 업데이트
 print_step "📚 GuestBook Ingress 업데이트 중..."
-sed -i.tmp "s/guestbook-dev\.your-domain\.com/guestbook-dev.$DOMAIN/g" service/guestbook/k8s/overlays/dev/ingress.yaml
-sed -i.tmp "s|arn:aws:acm:ap-northeast-2:ACCOUNT_ID:certificate/CERTIFICATE_ID|$CERT_ARN|g" service/guestbook/k8s/overlays/dev/ingress.yaml
-rm service/guestbook/k8s/overlays/dev/ingress.yaml.tmp
+if [ -f "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml" ]; then
+    sed -i.tmp "s/guestbook-dev\.your-domain\.com/guestbook-dev.$DOMAIN/g" "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml"
+    sed -i.tmp "s|arn:aws:acm:ap-northeast-2:ACCOUNT_ID:certificate/CERTIFICATE_ID|$CERT_ARN|g" "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml"
+    rm -f "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml.tmp"
+else
+    print_error "GuestBook Ingress 파일을 찾을 수 없습니다"
+    exit 1
+fi
 
 # Kustomize 빌드 검증
 print_step "🔍 Kustomize 설정 검증 중..."
-if kubectl kustomize service/bubblepool/k8s/overlays/dev > /dev/null 2>&1; then
+if kubectl kustomize "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev" > /dev/null 2>&1; then
     print_info "BubblePool Kustomize 검증 통과"
 else
     print_error "BubblePool Kustomize 검증 실패"
     exit 1
 fi
 
-if kubectl kustomize service/guestbook/k8s/overlays/dev > /dev/null 2>&1; then
+if kubectl kustomize "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev" > /dev/null 2>&1; then
     print_info "GuestBook Kustomize 검증 통과"
 else
     print_error "GuestBook Kustomize 검증 실패"
@@ -97,7 +119,7 @@ echo "인증서 ARN: $CERT_ARN"
 
 # DNS 레코드 설정 스크립트 생성
 print_step "📝 DNS 설정 스크립트 생성 중..."
-cat > scripts/setup-dns.sh << EOF
+cat > ./setup-dns.sh << EOF
 #!/bin/bash
 # $DOMAIN 도메인을 위한 DNS 레코드 설정
 
@@ -160,8 +182,8 @@ echo ""
 echo "⏰ DNS 전파에 5-10분 정도 소요될 수 있습니다"
 EOF
 
-chmod +x scripts/setup-dns.sh
-print_info "DNS 설정 스크립트가 생성되었습니다: scripts/setup-dns.sh"
+chmod +x ./setup-dns.sh
+print_info "DNS 설정 스크립트가 생성되었습니다: ./setup-dns.sh"
 
 # Git 커밋 옵션
 print_step "💾 Git 커밋"
@@ -169,7 +191,9 @@ echo "변경사항을 커밋하시겠습니까? (y/n)"
 read -r commit_choice
 
 if [ "$commit_choice" = "y" ] || [ "$commit_choice" = "Y" ]; then
-    git add service/*/k8s/overlays/dev/ingress.yaml scripts/setup-dns.sh
+    # 프로젝트 루트로 이동해서 Git 작업
+    cd "$PROJECT_ROOT"
+    git add service/*/k8s/overlays/dev/ingress.yaml platform/aws/ap-northeast-2/terraform-codes/scripts/setup-dns.sh
     git commit -m "feat: $DOMAIN 도메인으로 GitOps 애플리케이션 구성
 
 🌐 도메인 설정:

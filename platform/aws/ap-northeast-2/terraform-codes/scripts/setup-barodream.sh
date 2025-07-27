@@ -96,36 +96,47 @@ print_step "5️⃣ GitOps 애플리케이션 설정 업데이트"
 
 print_info "인증서 ARN: $CERT_ARN"
 
+# 프로젝트 루트로 이동 (terraform-codes에서 4단계 위로)
+PROJECT_ROOT="../../../../"
+
 # 백업 생성
-backup_dir="backups/barodream-$(date +%Y%m%d_%H%M%S)"
+backup_dir="${PROJECT_ROOT}backups/barodream-$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$backup_dir"
 
-if [ -f "service/bubblepool/k8s/overlays/dev/ingress.yaml" ]; then
-    cp service/bubblepool/k8s/overlays/dev/ingress.yaml "$backup_dir/bubblepool-ingress.yaml.bak"
+if [ -f "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml" ]; then
+    cp "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml" "$backup_dir/bubblepool-ingress.yaml.bak"
 fi
 
-if [ -f "service/guestbook/k8s/overlays/dev/ingress.yaml" ]; then
-    cp service/guestbook/k8s/overlays/dev/ingress.yaml "$backup_dir/guestbook-ingress.yaml.bak"
+if [ -f "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml" ]; then
+    cp "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml" "$backup_dir/guestbook-ingress.yaml.bak"
 fi
 
 print_info "백업이 생성되었습니다: $backup_dir"
 
 # BubblePool Ingress 업데이트
 print_info "BubblePool Ingress 업데이트 중..."
-sed -i.tmp "s/bubblepool-dev\.your-domain\.com/bubblepool-dev.barodream.com/g" service/bubblepool/k8s/overlays/dev/ingress.yaml
-sed -i.tmp "s|arn:aws:acm:ap-northeast-2:ACCOUNT_ID:certificate/CERTIFICATE_ID|$CERT_ARN|g" service/bubblepool/k8s/overlays/dev/ingress.yaml
-rm -f service/bubblepool/k8s/overlays/dev/ingress.yaml.tmp
+if [ -f "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml" ]; then
+    sed -i.tmp "s/bubblepool-dev\.your-domain\.com/bubblepool-dev.barodream.com/g" "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml"
+    sed -i.tmp "s|arn:aws:acm:ap-northeast-2:ACCOUNT_ID:certificate/CERTIFICATE_ID|$CERT_ARN|g" "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml"
+    rm -f "${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml.tmp"
+else
+    print_warning "BubblePool Ingress 파일을 찾을 수 없습니다: ${PROJECT_ROOT}service/bubblepool/k8s/overlays/dev/ingress.yaml"
+fi
 
 # GuestBook Ingress 업데이트
 print_info "GuestBook Ingress 업데이트 중..."
-sed -i.tmp "s/guestbook-dev\.your-domain\.com/guestbook-dev.barodream.com/g" service/guestbook/k8s/overlays/dev/ingress.yaml
-sed -i.tmp "s|arn:aws:acm:ap-northeast-2:ACCOUNT_ID:certificate/CERTIFICATE_ID|$CERT_ARN|g" service/guestbook/k8s/overlays/dev/ingress.yaml
-rm -f service/guestbook/k8s/overlays/dev/ingress.yaml.tmp
+if [ -f "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml" ]; then
+    sed -i.tmp "s/guestbook-dev\.your-domain\.com/guestbook-dev.barodream.com/g" "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml"
+    sed -i.tmp "s|arn:aws:acm:ap-northeast-2:ACCOUNT_ID:certificate/CERTIFICATE_ID|$CERT_ARN|g" "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml"
+    rm -f "${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml.tmp"
+else
+    print_warning "GuestBook Ingress 파일을 찾을 수 없습니다: ${PROJECT_ROOT}service/guestbook/k8s/overlays/dev/ingress.yaml"
+fi
 
 # 6단계: DNS 레코드 설정 스크립트 생성
 print_step "6️⃣ DNS 설정 스크립트 생성"
 
-cat > scripts/setup-barodream-dns.sh << 'EOF'
+cat > ./setup-barodream-dns.sh << 'EOF'
 #!/bin/bash
 # barodream.com DNS 레코드 설정
 
@@ -201,7 +212,8 @@ echo "curl -I https://bubblepool-dev.barodream.com"
 echo "curl -I https://guestbook-dev.barodream.com"
 EOF
 
-chmod +x scripts/setup-barodream-dns.sh
+chmod +x ./setup-barodream-dns.sh
+print_info "DNS 설정 스크립트가 생성되었습니다: ./setup-barodream-dns.sh"
 
 # 결과 요약
 print_step "🎉 barodream.com 설정 완료!"
@@ -224,10 +236,10 @@ echo "3. 🔐 SSL 인증서 DNS 검증:"
 echo "   aws acm describe-certificate --certificate-arn $CERT_ARN --region ap-northeast-2"
 echo ""
 echo "4. 🚀 애플리케이션 배포:"
-echo "   kubectl apply -f management/argo-cd/applications/projects/dev-apps.yaml"
+echo "   kubectl apply -f ../../../../management/argo-cd/applications/projects/dev-apps.yaml"
 echo ""
 echo "5. 🌐 DNS 레코드 설정:"
-echo "   ./scripts/setup-barodream-dns.sh"
+echo "   ./setup-barodream-dns.sh"
 echo ""
 echo "6. ✅ 접속 테스트:"
 echo "   https://bubblepool-dev.barodream.com"
@@ -245,4 +257,3 @@ echo "   https://guestbook-dev.barodream.com"
 - SSL 인증서 요청 및 설정
 - Ingress 호스트명 업데이트
 - DNS 레코드 생성 스크립트 추가
-
