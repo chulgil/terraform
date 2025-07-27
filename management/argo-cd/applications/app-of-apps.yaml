@@ -74,11 +74,8 @@ spec:
   - group: '*'
     kind: '*'
   
-  # 네임스페이스 제한 (dev 환경)
-  namespaceResourceBlacklist:
-  - group: ''
-    kind: Secret
-    name: '*-prod-*'  # prod 관련 시크릿 차단
+  # 네임스페이스 제한 (dev 환경) - 현재는 제한 없음
+  namespaceResourceBlacklist: []
   
   # RBAC 설정
   roles:

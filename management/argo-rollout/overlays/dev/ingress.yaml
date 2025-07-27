@@ -9,7 +9,6 @@ metadata:
     environment: dev
   annotations:
     # ALB Controller 설정
-    kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/group.name: argo-dev
@@ -17,14 +16,10 @@ metadata:
     # SSL/TLS 설정
     alb.ingress.kubernetes.io/ssl-redirect: '443'
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-2:ACCOUNT_ID:certificate/CERTIFICATE_ID
-    
-    # 보안 설정
-    alb.ingress.kubernetes.io/security-groups: sg-xxxxxxxx
-    alb.ingress.kubernetes.io/subnets: subnet-xxxxxxxx, subnet-yyyyyyyy
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:ap-northeast-2:421114334882:certificate/2012ab5e-6569-43e7-906e-cb5e69799132"
     
     # 헬스체크 설정
-    alb.ingress.kubernetes.io/healthcheck-path: /rollouts
+    alb.ingress.kubernetes.io/healthcheck-path: /
     alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
     alb.ingress.kubernetes.io/healthcheck-port: traffic-port
     alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'
@@ -32,8 +27,9 @@ metadata:
     alb.ingress.kubernetes.io/healthy-threshold-count: '2'
     alb.ingress.kubernetes.io/unhealthy-threshold-count: '3'
 spec:
+  ingressClassName: alb
   rules:
-    - host: rollouts-dev.your-domain.com
+    - host: rollouts-dev.barodream.com
       http:
         paths:
           - path: /
@@ -45,7 +41,7 @@ spec:
                   number: 3100
   tls:
     - hosts:
-        - rollouts-dev.your-domain.com
+        - rollouts-dev.barodream.com
 
 ---
 # NodePort Service (ALB 백업용)

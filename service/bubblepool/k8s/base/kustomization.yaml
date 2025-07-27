@@ -1,19 +1,38 @@
+# BubblePool Base Kustomization
+# Argo Rollouts Blue/Green 배포를 위한 기본 리소스
+
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-metadata:
-  name: bubblepool-base
+# 기본 리소스
+resources:
+- rollout.yaml           # Argo Rollouts Rollout (Deployment 대신)
+- service.yaml           # Active Service
+- service-preview.yaml   # Preview Service (Blue/Green용)
+# Analysis Templates (선택사항 - 고급 분석이 필요한 경우)
+# - analysis-template.yaml
 
+# 공통 라벨
 commonLabels:
+  app: bubblepool
   app.kubernetes.io/name: bubblepool
   app.kubernetes.io/part-of: bubblepool-suite
 
-resources:
-- deployment.yaml
-- service.yaml
-- configmap.yaml
+# 공통 어노테이션
+commonAnnotations:
+  config.kubernetes.io/origin-source: "BubblePool App - Argo Rollouts Blue/Green"
 
-namespace: bubblepool
+# ConfigMap 생성 (환경 설정용)
+configMapGenerator:
+- name: bubblepool-config
+  literals:
+  - APP_NAME=BubblePool
+  - APP_VERSION=v1.0.0
+  - DEPLOYMENT_TYPE=Blue-Green with Argo Rollouts
+  - LOG_LEVEL=info
+
+# 네임스페이스 (overlay에서 설정)
+# namespace: bubblepool-dev
 
 # 공통 이미지 태그
 images:

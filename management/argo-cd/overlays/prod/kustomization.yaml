@@ -6,43 +6,43 @@ resources:
 - ../../base
 - ingress.yaml
 
-# dev 환경 라벨
+# prod 환경 라벨
 commonLabels:
-  environment: dev
-  branch: dev
+  environment: prod
+  branch: main
 
-# dev 환경 annotations
+# prod 환경 annotations
 commonAnnotations:
-  argocd.argoproj.io/tracking-id: dev-argocd
+  argocd.argoproj.io/tracking-id: prod-argocd
 
-# dev 환경 패치
+# prod 환경 패치
 patchesStrategicMerge:
 - patches/configmap-patch.yaml
 - patches/rbac-patch.yaml
 - patches/server-patch.yaml
 - patches/resource-limits.yaml
 
-# dev 환경용 ConfigMap 생성
+# prod 환경용 ConfigMap 생성
 configMapGenerator:
-- name: argocd-dev-config
+- name: argocd-prod-config
   literals:
-  - ENV=dev
-  - LOG_LEVEL=debug
-  - GIT_BRANCH=dev
+  - ENV=prod
+  - LOG_LEVEL=info
+  - GIT_BRANCH=main
 
 # 네임스페이스 접두사 없음 (표준 ArgoCD 이름 사용)
 namePrefix: ""
 
-# dev 환경 특화 이미지 태그
+# prod 환경 특화 이미지 태그 (안정 버전)
 images:
 - name: quay.io/argoproj/argocd
   newTag: v2.9.3
 
-# 리소스 변환 (dev 환경용 최적화)
+# 리소스 변환 (prod 환경용 고가용성)
 replicas:
 - name: argocd-server
-  count: 1
+  count: 2
 - name: argocd-application-controller
   count: 1
 - name: argocd-repo-server
-  count: 1 
+  count: 2 

@@ -38,11 +38,11 @@ validate_kustomize() {
         return 1
     fi
     
-    if kustomize build "${path}" > /tmp/validation-${name}.yaml 2>/dev/null; then
+    if kustomize build "${path}" > "/tmp/validation-${name}.yaml" 2>/dev/null; then
         echo -e "${GREEN}✅ ${name} kustomization is valid${NC}"
         
         # Check for required resources
-        if grep -q "kind: Namespace" /tmp/validation-${name}.yaml; then
+        if grep -q "kind: Namespace" "/tmp/validation-${name}.yaml"; then
             echo -e "${GREEN}✅ Namespace resource found${NC}"
         else
             echo -e "${YELLOW}⚠️  No Namespace resource found${NC}"
@@ -103,6 +103,46 @@ fi
 echo ""
 
 if ! validate_yaml "management/argo-cd/applications/projects/dev-services.yaml" "Dev Services"; then
+    VALIDATION_PASSED=false
+fi
+
+echo ""
+
+# Validate critical ArgoCD configurations
+echo -e "${BLUE}📋 Checking ArgoCD critical configurations...${NC}"
+
+# Check if server.insecure is set in generated manifests
+if kustomize build management/argo-cd/overlays/dev > /tmp/argocd-dev.yaml 2>/dev/null; then
+    if grep -q "server.insecure.*true" /tmp/argocd-dev.yaml; then
+        echo -e "${GREEN}✅ server.insecure is properly configured${NC}"
+    else
+        echo -e "${RED}❌ server.insecure is not set to true${NC}"
+        VALIDATION_PASSED=false
+    fi
+    
+    # Check for Ingress configuration
+    if grep -q "kind: Ingress" /tmp/argocd-dev.yaml; then
+        echo -e "${GREEN}✅ Ingress configuration found${NC}"
+        
+        # Check for HTTPS/SSL configuration
+        if grep -q "certificate-arn" /tmp/argocd-dev.yaml; then
+            echo -e "${GREEN}✅ SSL certificate configuration found${NC}"
+        else
+            echo -e "${YELLOW}⚠️  SSL certificate configuration not found${NC}"
+        fi
+    else
+        echo -e "${YELLOW}⚠️  Ingress configuration not found${NC}"
+    fi
+    
+    # Check for proper server args (--insecure flag)
+    if grep -q "\--insecure" /tmp/argocd-dev.yaml; then
+        echo -e "${GREEN}✅ ArgoCD server --insecure flag found${NC}"
+    else
+        echo -e "${RED}❌ ArgoCD server --insecure flag not found${NC}"
+        VALIDATION_PASSED=false
+    fi
+else
+    echo -e "${RED}❌ Failed to build dev overlay for validation${NC}"
     VALIDATION_PASSED=false
 fi
 

@@ -9,26 +9,26 @@ resources:
 - namespace.yaml
 - https://raw.githubusercontent.com/argoproj/argo-cd/v2.9.3/manifests/install.yaml
 - configmap.yaml
-- rbac-config.yaml
+# - rbac-config.yaml  # 패치로 처리하여 충돌 방지
 
 # 공통 라벨
 commonLabels:
   app.kubernetes.io/instance: argocd
   environment: dev
 
-# ConfigMap과 Secret 대체
-patchesStrategicMerge:
-- |
-  apiVersion: v1
-  kind: ConfigMap
-  metadata:
-    name: argocd-cm
-    namespace: argocd
-  data:
-    url: http://argocd-server.argocd.svc.cluster.local
+# ConfigMap 패치 (충돌 방지를 위해 제거)
+# patchesStrategicMerge:
+# - |
+#   apiVersion: v1
+#   kind: ConfigMap
+#   metadata:
+#     name: argocd-cm
+#     namespace: argocd
+#   data:
+#     url: http://argocd-server.argocd.svc.cluster.local
 
-# 리소스 이름 접두사 (dev 환경)
-namePrefix: dev-
+# 리소스 이름 접두사 제거 (ArgoCD 표준 이름 사용)
+# namePrefix: ""
 
 # 이미지 태그 고정 (안정성을 위해)
 images:

@@ -10,7 +10,7 @@ metadata:
 resources:
   - namespace.yaml
   - https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
-  - configmap.yaml
+  # - configmap.yaml  # 패치로 처리하여 충돌 방지
 
 # 공통 레이블 적용
 commonLabels:

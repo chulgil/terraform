@@ -1,39 +1,44 @@
+# BubblePool Development Environment
+# Argo Rollouts Blue/Green 배포 - 개발 환경
+
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-metadata:
-  name: bubblepool-dev
-
-# Base 리소스 참조
-bases:
+# Base 참조
+resources:
 - ../../base
+- namespace.yaml
+- ingress.yaml
 
-# Dev 환경 특화 설정
+# 네임스페이스 설정
 namespace: bubblepool-dev
 
+# 개발 환경 라벨 추가
 commonLabels:
   environment: dev
   branch: dev
 
-# Dev 환경용 리소스 추가
-resources:
-- ingress.yaml
-- namespace.yaml
+# 개발 환경 어노테이션
+commonAnnotations:
+  config.kubernetes.io/target-environment: "development"
+  argocd.argoproj.io/sync-wave: "1"
 
-# Dev 환경 패치
-patchesStrategicMerge:
-- deployment-patch.yaml
-- configmap-patch.yaml
-
-# Dev 환경 이미지 (개발용 태그)
-images:
-- name: nginx
-  newTag: "1.21-alpine"
-
-# Dev 환경 ConfigMap 생성
+# 환경별 설정 오버라이드
 configMapGenerator:
 - name: bubblepool-env-config
   literals:
-  - APP_ENV=development
-  - DEBUG_MODE=true
-  - LOG_LEVEL=debug 
+  - ENVIRONMENT=dev
+  - DEBUG=true
+  - LOG_LEVEL=debug
+  - ENABLE_METRICS=true
+  - ROLLOUT_STRATEGY=blue-green
+
+# 개발 환경 패치
+patchesStrategicMerge:
+- rollout-patch.yaml
+
+# 이미지 태그 설정 (개발 환경)
+images:
+- name: nginx
+  newName: nginx
+  newTag: 1.22-alpine 

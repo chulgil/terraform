@@ -153,6 +153,44 @@ else
     print_status "Admin password retrieved successfully"
 fi
 
+# Step 4.5: Validate critical configurations
+echo -e "${BLUE}🔍 Validating ArgoCD configuration...${NC}"
+
+# Check if server.insecure is properly configured
+CONFIGMAP_CHECK=$(kubectl get configmap argocd-cmd-params-cm -n ${NAMESPACE} -o jsonpath='{.data.server\.insecure}' 2>/dev/null || echo "")
+if [ "$CONFIGMAP_CHECK" = "true" ]; then
+    print_status "server.insecure properly configured in argocd-cmd-params-cm"
+else
+    print_warning "server.insecure not found in argocd-cmd-params-cm, checking argocd-cm..."
+    
+    CONFIGMAP_CHECK2=$(kubectl get configmap argocd-cm -n ${NAMESPACE} -o jsonpath='{.data.server\.insecure}' 2>/dev/null || echo "")
+    if [ "$CONFIGMAP_CHECK2" = "true" ]; then
+        print_status "server.insecure properly configured in argocd-cm"
+    else
+        print_error "server.insecure not properly configured! ALB health checks may fail."
+        print_info "Applying fix..."
+        kubectl patch configmap argocd-cmd-params-cm -n ${NAMESPACE} --patch '{"data":{"server.insecure":"true"}}' || {
+            print_error "Failed to patch ConfigMap. Please check manually."
+        }
+        
+        # Restart ArgoCD server to apply the change
+        print_info "Restarting ArgoCD server to apply configuration..."
+        kubectl rollout restart deployment argocd-server -n ${NAMESPACE}
+        
+        # Wait for rollout to complete
+        kubectl rollout status deployment argocd-server -n ${NAMESPACE} --timeout=300s
+        print_status "ArgoCD server restarted successfully"
+    fi
+fi
+
+# Check if Ingress is properly configured
+INGRESS_CHECK=$(kubectl get ingress argocd-server-ingress -n ${NAMESPACE} -o jsonpath='{.metadata.annotations}' 2>/dev/null || echo "")
+if echo "$INGRESS_CHECK" | grep -q "certificate-arn"; then
+    print_status "Ingress SSL configuration found"
+else
+    print_warning "Ingress SSL configuration not found (this is okay for local development)"
+fi
+
 echo ""
 echo -e "${GREEN}🎉 ArgoCD installation completed successfully!${NC}"
 echo -e "${GREEN}============================================${NC}"

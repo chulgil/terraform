@@ -28,6 +28,14 @@ ArgoCD는 Kubernetes용 선언적 GitOps CD(Continuous Delivery) 도구입니다
 - Blue/Green (Argo Rollouts 연동)
 - Canary (Argo Rollouts 연동)
 
+### **🌐 HTTPS 및 ALB 지원**
+- **SSL/TLS**: AWS Certificate Manager 와일드카드 인증서 지원
+- **Load Balancing**: AWS Application Load Balancer 통합
+- **환경별 도메인**: 
+  - **Dev**: `argo-dev.barodream.com`
+  - **Prod**: `argo.barodream.com` 
+- **Insecure Mode**: ALB 헬스체크 호환성을 위한 자동 설정
+
 ## 📁 **디렉토리 구조**
 
 ```
@@ -299,12 +307,88 @@ resources:
 - 이메일 알림
 - Webhook 지원
 
+## 🛠️ **트러블슈팅**
+
+### **자주 발생하는 문제들**
+
+#### **1. ALB 헬스체크 실패 (503 에러)**
+**문제**: `https://argo.barodream.com`에서 503 Service Temporarily Unavailable
+
+**원인**: ArgoCD 서버가 HTTP 요청을 HTTPS로 리다이렉트하여 ALB 헬스체크 실패
+
+**해결방법**:
+```bash
+# ConfigMap에 insecure 모드 설정
+kubectl patch configmap argocd-cmd-params-cm -n argocd --patch '{"data":{"server.insecure":"true"}}'
+
+# ArgoCD 서버 재시작
+kubectl rollout restart deployment argocd-server -n argocd
+```
+
+#### **2. ConfigMap 설정이 적용되지 않음**
+**문제**: server.insecure 설정이 반영되지 않음
+
+**원인**: kustomization에서 namePrefix로 인한 리소스 이름 충돌
+
+**해결방법**: 
+- base/kustomization.yaml에서 namePrefix 제거
+- 표준 ArgoCD 리소스 이름 사용
+
+#### **3. SSL 인증서 검증 실패**
+**문제**: 와일드카드 인증서 검증 실패
+
+**해결방법**:
+```bash
+# DNS 검증 레코드 확인
+dig _acme-challenge.barodream.com TXT
+
+# Route53에 검증 레코드 추가 (자동화 스크립트 사용)
+./platform/aws/ap-northeast-2/terraform-codes/scripts/setup-barodream-dns.sh
+```
+
+#### **4. Ingress ALB 생성 실패**
+**문제**: ALB Controller 권한 부족
+
+**해결방법**:
+```bash
+# Terraform으로 권한 업데이트
+cd platform/aws/ap-northeast-2/terraform-codes/environments/dev
+terraform apply -target=module.alb_controller.aws_iam_policy.alb_controller
+
+# ALB Controller 재시작
+kubectl rollout restart deployment aws-load-balancer-controller -n kube-system
+```
+
+### **설정 검증**
+```bash
+# 전체 설정 검증
+./scripts/validate.sh
+
+# 개별 설정 확인
+kubectl get configmap argocd-cmd-params-cm -n argocd -o yaml
+kubectl get ingress argocd-server-ingress -n argocd
+```
+
+## 🌐 **환경별 접속 정보**
+
+### **개발 환경 (현재 활성)**
+- **URL**: https://argo-dev.barodream.com
+- **사용자**: admin
+- **비밀번호**: `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d`
+- **설정 방법**: `./platform/aws/ap-northeast-2/terraform-codes/scripts/setup-argocd-dev-dns.sh`
+
+### **프로덕션 환경 (미래 사용)**
+- **URL**: https://argo.barodream.com
+- **배포 방법**: `kubectl apply -k management/argo-cd/overlays/prod`
+- **DNS 설정**: 별도 스크립트 필요
+
 ## 🔗 **관련 리소스**
 
 - [ArgoCD 공식 문서](https://argo-cd.readthedocs.io/)
 - [GitOps 가이드](../docs/GitOps.md)
 - [Argo Rollouts 연동](../argo-rollout/README.md)
 - [Kubernetes 매니페스트](../k8s/README.md)
+- [ALB Controller 설정](../../platform/aws/ap-northeast-2/terraform-codes/modules/alb-controller/)
 
 ## 🤝 **기여하기**
 

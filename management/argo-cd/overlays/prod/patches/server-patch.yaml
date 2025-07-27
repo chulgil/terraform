@@ -21,23 +21,34 @@ spec:
         - --logformat
         - json
         - --loglevel
-        - debug  # dev 환경에서는 debug 로그
+        - info  # prod 환경에서는 info 로그
         
-        # 환경 변수는 ConfigMap으로 관리 (충돌 방지)
+        # 환경 변수 추가
+        env:
+        - name: ARGOCD_SERVER_INSECURE
+          value: "true"
+        - name: ARGOCD_SERVER_ROOTPATH
+          value: "/"
+        - name: ARGOCD_LOG_LEVEL
+          value: "info"
+        - name: ARGOCD_ENV
+          value: "prod"
         
-        # 헬스체크 조정 (dev 환경)
+        # 헬스체크 조정 (prod 환경)
         livenessProbe:
           httpGet:
             path: /healthz?full=true
             port: 8080
-          initialDelaySeconds: 30
+          initialDelaySeconds: 60
           periodSeconds: 30
           timeoutSeconds: 10
+          failureThreshold: 3
         
         readinessProbe:
           httpGet:
             path: /healthz
             port: 8080
-          initialDelaySeconds: 10
+          initialDelaySeconds: 30
           periodSeconds: 10
-          timeoutSeconds: 5 
+          timeoutSeconds: 5
+          failureThreshold: 3 

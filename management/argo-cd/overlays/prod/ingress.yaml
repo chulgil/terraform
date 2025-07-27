@@ -5,6 +5,7 @@ metadata:
   namespace: argocd
   annotations:
     # ALB 설정
+    kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
@@ -34,16 +35,15 @@ metadata:
         }
       }
     
-    # dev 환경 태그
+    # prod 환경 태그
     alb.ingress.kubernetes.io/tags: |
-      Environment=dev,
+      Environment=prod,
       Project=gitops-platform,
       Team=devops,
-      Branch=dev
+      Branch=main
 spec:
-  ingressClassName: alb
   rules:
-  - host: argo-dev.barodream.com
+  - host: argo.barodream.com
     http:
       paths:
       - path: /
@@ -55,31 +55,4 @@ spec:
               number: 80
   tls:
   - hosts:
-    - argo-dev.barodream.com
-
----
-# dev 환경용 NodePort (포트 포워딩 대안)
-apiVersion: v1
-kind: Service
-metadata:
-  name: argocd-server-nodeport
-  namespace: argocd
-  labels:
-    app.kubernetes.io/component: server
-    app.kubernetes.io/name: argocd-server
-    app.kubernetes.io/part-of: argocd
-spec:
-  type: NodePort
-  ports:
-  - name: http
-    port: 80
-    protocol: TCP
-    targetPort: 8080
-    nodePort: 30080  # dev 환경용 고정 포트
-  - name: grpc
-    port: 443
-    protocol: TCP
-    targetPort: 8080
-    nodePort: 30443
-  selector:
-    app.kubernetes.io/name: argocd-server 
+    - argo.barodream.com 

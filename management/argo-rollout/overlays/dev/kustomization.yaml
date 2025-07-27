@@ -42,11 +42,12 @@ configMapGenerator:
         app.kubernetes.io/name: argo-rollouts-dev-config
         environment: dev
 
-# Dev 환경용 패치 적용
+# Dev 환경용 패치 적용 (기본 설치를 위해 임시 비활성화)
 patchesStrategicMerge:
-  - patches/controller-patch.yaml
-  - patches/dashboard-patch.yaml
-  - patches/resource-limits.yaml
+  - patches/configmap-patch.yaml
+  # - patches/controller-patch.yaml
+  # - patches/dashboard-patch.yaml  
+  # - patches/resource-limits.yaml
 
 # 리소스 변환
 transformers: []

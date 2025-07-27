@@ -4,11 +4,10 @@ metadata:
   name: bubblepool-ingress
   annotations:
     # ALB Controller 설정
-    kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     
-    # SSL 설정 (cert-manager)
+    # SSL 설정 (AWS ACM)
     alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:ap-northeast-2:421114334882:certificate/2012ab5e-6569-43e7-906e-cb5e69799132"
     alb.ingress.kubernetes.io/ssl-redirect: "443"
     
@@ -23,6 +22,7 @@ metadata:
     alb.ingress.kubernetes.io/tags: Environment=dev,Project=bubblepool,ManagedBy=ArgoCD
     
 spec:
+  ingressClassName: alb
   rules:
   - host: bubblepool-dev.barodream.com
     http:

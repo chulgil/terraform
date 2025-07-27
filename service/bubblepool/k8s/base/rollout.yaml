@@ -1,0 +1,68 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: bubblepool-rollout
+  labels:
+    app: bubblepool
+    app.kubernetes.io/name: bubblepool
+    app.kubernetes.io/part-of: bubblepool-suite
+spec:
+  replicas: 1
+  strategy:
+    blueGreen:
+      activeService: bubblepool
+      previewService: bubblepool-preview
+      autoPromotionEnabled: false
+      scaleDownDelaySeconds: 30
+      # prePromotionAnalysis:
+      #   templates:
+      #   - templateName: simple-health-check
+      #   args:
+      #   - name: service-name
+      #     value: bubblepool-preview
+      #   - name: namespace
+      #     value: bubblepool-dev
+  selector:
+    matchLabels:
+      app: bubblepool
+  template:
+    metadata:
+      labels:
+        app: bubblepool
+        version: v1
+        app.kubernetes.io/name: bubblepool
+        app.kubernetes.io/part-of: bubblepool-suite
+    spec:
+      containers:
+      - name: bubblepool
+        image: nginx:1.22-alpine
+        ports:
+        - containerPort: 80
+          name: http
+        env:
+        - name: APP_NAME
+          value: "BubblePool"
+        - name: APP_VERSION
+          value: "v1.0.0"
+        - name: DEPLOYMENT_TYPE
+          value: "Blue-Green with Argo Rollouts"
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "25m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+  revisionHistoryLimit: 3 

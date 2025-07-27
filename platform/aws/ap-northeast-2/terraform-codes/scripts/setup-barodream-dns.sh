@@ -16,7 +16,7 @@ ALB_DNS=$(kubectl get ingress bubblepool-ingress -n bubblepool-dev -o jsonpath='
 if [ "$ALB_DNS" = "ALB_NOT_READY" ]; then
     echo -e "${RED}[오류]${NC} ALB가 아직 준비되지 않았습니다."
     echo "먼저 애플리케이션을 배포하세요:"
-    echo "kubectl apply -f management/argo-cd/applications/projects/dev-apps.yaml"
+    echo "kubectl apply -f ../../../../management/argo-cd/applications/projects/dev-apps.yaml"
     exit 1
 fi
 

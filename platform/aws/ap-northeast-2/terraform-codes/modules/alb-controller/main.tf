@@ -24,6 +24,7 @@ resource "aws_iam_policy" "alb_controller" {
           "elasticloadbalancing:DescribeLoadBalancers",
           "elasticloadbalancing:DescribeLoadBalancerAttributes",
           "elasticloadbalancing:DescribeListeners",
+          "elasticloadbalancing:DescribeListenerAttributes",
           "elasticloadbalancing:DescribeListenerCertificates",
           "elasticloadbalancing:DescribeSSLPolicies",
           "elasticloadbalancing:DescribeRules",
@@ -216,6 +217,16 @@ resource "aws_iam_policy" "alb_controller" {
           "waf-regional:DisassociateWebACL",
           "waf:GetWebACL",
           "waf:GetWebACLForResource"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "shield:DescribeProtection",
+          "shield:GetSubscriptionState",
+          "shield:DescribeSubscription",
+          "shield:ListProtections"
         ]
         Resource = "*"
       }      
