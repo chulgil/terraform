@@ -16,23 +16,25 @@ namespace: feed-server-dev
 # 개발 환경 라벨 추가
 labels:
 - pairs:
-    environment: dev
     branch: dev
+    environment: dev
 
 # 개발 환경 어노테이션
 commonAnnotations:
-  config.kubernetes.io/target-environment: "development"
   argocd.argoproj.io/sync-wave: "1"
+  config.kubernetes.io/target-environment: development
 
 # 환경별 설정 오버라이드
 configMapGenerator:
-- name: feed-server-env-config
+- behavior: merge
   literals:
   - ENVIRONMENT=dev
   - DEBUG=true
   - LOG_LEVEL=debug
   - ENABLE_METRICS=true
   - ROLLOUT_STRATEGY=blue-green
+  - IMAGE_TAG=latest
+  name: feed-server-env-config
 
 # 개발 환경 패치
 patches:
@@ -40,28 +42,32 @@ patches:
   target:
     kind: Rollout
     name: feed-server-rollout
+- path: configmap-patch.yaml
+  target:
+    kind: ConfigMap
+    name: feed-server-config
 
 # 개발 환경 이미지 설정 (CI/CD에서 자동으로 업데이트됨)
 images:
 - name: feed-server
-  newName: 421114334882.dkr.ecj.ap-northeast-2.amazonaws.com/feed-server
-  newTag: "latest"  # CI/CD에서 이 값을 자동으로 업데이트합니다.
+  newName: 421114334882.dkr.ecr.ap-northeast-2.amazonaws.com/feed-server
+  newTag: ec0e3de3e016b9042fdb890ceeac65dba001e15f
 
 # 리소스에 접두사/접미사 추가
-namePrefix: "dev-"
-nameSuffix: "-v1"
+namePrefix: dev-
+nameSuffix: -v1
 
 # 이미지 태그를 위한 ConfigMap 생성
 configMapGenerator:
-- name: feed-server-env-config
-  behavior: merge
+- behavior: merge
   literals:
-    - ENVIRONMENT=dev
-    - DEBUG=true
-    - LOG_LEVEL=debug
-    - ENABLE_METRICS=true
-    - ROLLOUT_STRATEGY=blue-green
-    - IMAGE_TAG=latest  # CI/CD에서 이 값을 업데이트
+  - ENVIRONMENT=dev
+  - DEBUG=true
+  - LOG_LEVEL=debug
+  - ENABLE_METRICS=true
+  - ROLLOUT_STRATEGY=blue-green
+  - IMAGE_TAG=latest
+  name: feed-server-env-config
 
 # ConfigMap을 환경 변수로 사용하기 위한 패치
 patches:
