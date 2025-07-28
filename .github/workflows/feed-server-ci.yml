@@ -45,9 +45,9 @@ jobs:
         echo "Service directory contents:"
         ls -la service/feed-server/ || echo "Service directory not found"
         echo "Java version:"
-        java -version
+        java -version || echo "Java not found"
         echo "Gradle version:"
-        ./service/feed-server/src/gradlew --version
+        cd service/feed-server/src && ./gradlew --version || echo "Gradle not found"
 
     - name: Build with Gradle
       run: |
