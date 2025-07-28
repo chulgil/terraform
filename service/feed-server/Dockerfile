@@ -8,6 +8,9 @@ COPY src/build.gradle src/settings.gradle ./
 COPY src/gradle src/gradle
 COPY src/gradlew ./
 
+# Set execute permissions for gradlew
+RUN chmod +x gradlew
+
 # Download dependencies
 RUN ./gradlew dependencies --no-daemon
 
@@ -15,7 +18,7 @@ RUN ./gradlew dependencies --no-daemon
 COPY src/main src/main
 
 # Build the application
-RUN ./gradlew build -x test --no-daemon
+RUN ./gradlew clean build -x test --no-daemon --stacktrace
 
 # Runtime stage
 FROM openjdk:21-jdk-slim
