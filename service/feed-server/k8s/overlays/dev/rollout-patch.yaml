@@ -21,8 +21,7 @@ spec:
     spec:
       containers:
       - name: feed-server
-        # 컨테이너 이미지 (필수!)
-        image: openjdk:21-jdk-slim
+        # 컨테이너 이미지는 base kustomization.yaml에서 설정
         # 개발 환경 특화 환경 변수
         env:
         - name: APP_NAME
