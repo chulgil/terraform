@@ -41,8 +41,35 @@ patches:
     kind: Rollout
     name: feed-server-rollout
 
-# 개발 환경 이미지 설정
+# 개발 환경 이미지 설정 (CI/CD에서 자동으로 업데이트됨)
 images:
 - name: feed-server
-  newName: 421114334882.dkr.ecr.ap-northeast-2.amazonaws.com/feed-server
-  newTag: "latest" 
+  newName: 421114334882.dkr.ecj.ap-northeast-2.amazonaws.com/feed-server
+  newTag: "latest"  # CI/CD에서 이 값을 자동으로 업데이트합니다.
+
+# 리소스에 접두사/접미사 추가
+namePrefix: "dev-"
+nameSuffix: "-v1"
+
+# 이미지 태그를 위한 ConfigMap 생성
+configMapGenerator:
+- name: feed-server-env-config
+  behavior: merge
+  literals:
+    - ENVIRONMENT=dev
+    - DEBUG=true
+    - LOG_LEVEL=debug
+    - ENABLE_METRICS=true
+    - ROLLOUT_STRATEGY=blue-green
+    - IMAGE_TAG=latest  # CI/CD에서 이 값을 업데이트
+
+# ConfigMap을 환경 변수로 사용하기 위한 패치
+patches:
+- path: rollout-patch.yaml
+  target:
+    kind: Rollout
+    name: feed-server-rollout
+- path: configmap-patch.yaml
+  target:
+    kind: ConfigMap
+    name: feed-server-config

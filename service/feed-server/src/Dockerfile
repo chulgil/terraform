@@ -12,7 +12,7 @@ COPY gradlew ./
 RUN ./gradlew dependencies --no-daemon
 
 # Copy source code
-COPY src src
+COPY main main
 
 # Build the application
 RUN ./gradlew build -x test --no-daemon

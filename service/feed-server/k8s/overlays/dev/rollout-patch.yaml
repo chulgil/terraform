@@ -21,8 +21,13 @@ spec:
     spec:
       containers:
       - name: feed-server
-        # 컨테이너 이미지는 base kustomization.yaml에서 설정
+        # 이미지는 kustomize가 자동으로 업데이트
         # 개발 환경 특화 환경 변수
+        envFrom:
+        - configMapRef:
+            name: feed-server-env-config
+        - secretRef:
+            name: feed-server-secrets
         env:
         - name: APP_NAME
           value: "Feed Server"

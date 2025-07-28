@@ -35,7 +35,7 @@ spec:
     spec:
       containers:
       - name: feed-server
-        image: feed-server:latest
+        image: feed-server:latest  # Will be replaced by kustomize
         ports:
         - containerPort: 8080
           name: http
