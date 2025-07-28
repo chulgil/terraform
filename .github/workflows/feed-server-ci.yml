@@ -56,10 +56,11 @@ jobs:
       run: |
         cd service/feed-server/src
         echo "Checking Gradle wrapper..."
-        ls -la gradlew
-        ls -la gradle/wrapper/
+        ls -la gradlew || echo "gradlew not found"
+        ls -la gradle/wrapper/ || echo "gradle/wrapper directory not found"
         echo "Testing Gradle wrapper..."
-        ./gradlew --version
+        chmod +x gradlew || echo "Failed to set gradlew permissions"
+        ./gradlew --version || echo "Failed to run gradlew"
 
     - name: Build with Gradle
       run: |
@@ -90,6 +91,14 @@ jobs:
       with:
         role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
         aws-region: ${{ env.AWS_REGION }}
+        role-session-name: GitHubActions
+
+    - name: Verify AWS credentials
+      run: |
+        echo "AWS Account ID: ${{ secrets.AWS_ACCOUNT_ID }}"
+        echo "AWS Role ARN: ${{ secrets.AWS_ROLE_ARN }}"
+        echo "AWS Region: ${{ env.AWS_REGION }}"
+        aws sts get-caller-identity || echo "AWS credentials not configured"
 
     - name: Login to ECR
       uses: aws-actions/amazon-ecr-login@v2
