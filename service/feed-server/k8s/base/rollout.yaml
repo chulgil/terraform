@@ -35,7 +35,7 @@ spec:
     spec:
       containers:
       - name: feed-server
-        image: openjdk:21-jdk-slim
+        image: feed-server:latest
         ports:
         - containerPort: 8080
           name: http

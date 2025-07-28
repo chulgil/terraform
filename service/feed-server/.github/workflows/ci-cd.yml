@@ -1,0 +1,84 @@
+name: Feed Server CI/CD
+
+on:
+  push:
+    paths: ['service/feed-server/src/**']
+    branches: [main]
+  pull_request:
+    paths: ['service/feed-server/src/**']
+    branches: [main]
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
+  ECR_REPOSITORY: feed-server
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: 8.4
+
+    - name: Build with Gradle
+      run: |
+        cd service/feed-server/src
+        ./gradlew build
+
+    - name: Run tests
+      run: |
+        cd service/feed-server/src
+        ./gradlew test
+
+  build-and-push:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to ECR
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build and push image
+      run: |
+        cd service/feed-server/src
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }} .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+
+    - name: Update K8s manifests
+      run: |
+        cd service/feed-server/k8s/overlays/dev
+        kustomize edit set image feed-server=$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+        
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add kustomization.yaml
+        git commit -m "Update image to ${{ github.sha }}"
+        git push 

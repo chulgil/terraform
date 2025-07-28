@@ -24,7 +24,7 @@ metadata:
 spec:
   ingressClassName: alb
   rules:
-  - host: feed-server-dev.barodream.com
+  - host: feed-dev.barodream.com
     http:
       paths:
       - path: /
@@ -36,4 +36,4 @@ spec:
               number: 8080
   tls:
   - hosts:
-    - feed-server-dev.barodream.com 
+    - feed-dev.barodream.com 

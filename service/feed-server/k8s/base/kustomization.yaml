@@ -39,5 +39,5 @@ configMapGenerator:
 
 # 공통 이미지 태그
 images:
-- name: openjdk
-  newTag: "21-jdk-slim" 
+- name: feed-server
+  newTag: "latest" 
