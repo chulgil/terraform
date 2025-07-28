@@ -20,8 +20,57 @@ env:
   ECR_REPOSITORY: feed-server
 
 jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch'
+    outputs:
+      has-changes: ${{ steps.filter.outputs.changes }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 전체 히스토리 가져오기
+
+    - name: Check for changes in feed-server
+      id: filter
+      run: |
+        echo "🔍 feed-server 폴더 변경사항 확인 중..."
+        
+        # 이벤트 타입에 따른 변경사항 확인
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          # Pull Request의 경우 base와 비교
+          echo "📋 Pull Request 감지됨"
+          if git diff --name-only origin/main...HEAD | grep -E "^service/feed-server/" > /dev/null; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+            echo "✅ feed-server 폴더에 변경사항이 있습니다."
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "⏭️ feed-server 폴더에 변경사항이 없습니다. 빌드를 건너뜁니다."
+          fi
+        else
+          # Push의 경우 이전 커밋과 비교
+          echo "📤 Push 감지됨"
+          if git diff --name-only HEAD~1 HEAD | grep -E "^service/feed-server/" > /dev/null; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+            echo "✅ feed-server 폴더에 변경사항이 있습니다."
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "⏭️ feed-server 폴더에 변경사항이 없습니다. 빌드를 건너뜁니다."
+          fi
+        fi
+        
+        # 변경된 파일 목록 출력 (디버깅용)
+        echo "📄 변경된 파일 목록:"
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          git diff --name-only origin/main...HEAD | grep -E "^service/feed-server/" || echo "변경된 파일 없음"
+        else
+          git diff --name-only HEAD~1 HEAD | grep -E "^service/feed-server/" || echo "변경된 파일 없음"
+        fi
+
   build-and-test:
     runs-on: ubuntu-latest
+    needs: check-changes
+    if: (needs.check-changes.outputs.has-changes == 'true' || github.event_name == 'workflow_dispatch')
     permissions:
       contents: read
     steps:
@@ -75,9 +124,9 @@ jobs:
         ./gradlew test --no-daemon --stacktrace --info
 
   build-and-push:
-    needs: build-and-test
+    needs: [check-changes, build-and-test]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (needs.check-changes.outputs.has-changes == 'true' || github.event_name == 'workflow_dispatch')
     permissions:
       id-token: write
       contents: write

@@ -6,11 +6,10 @@ kind: Kustomization
 
 # 기본 리소스
 resources:
-- rollout.yaml           # Argo Rollouts Rollout (Deployment 대신)
+- rollout.yaml           # Argo Rollouts Rollout
 - service.yaml           # Active Service
 - service-preview.yaml   # Preview Service (Blue/Green용)
-# Analysis Templates (선택사항 - 고급 분석이 필요한 경우)
-# - analysis-template.yaml
+- configmap.yaml         # 기본 ConfigMap
 
 # 공통 라벨
 labels:
@@ -23,22 +22,8 @@ labels:
 commonAnnotations:
   config.kubernetes.io/origin-source: "Feed Server App - Argo Rollouts Blue/Green"
 
-# ConfigMap 생성 (환경 설정용)
-configMapGenerator:
-- name: feed-server-config
-  literals:
-  - APP_NAME=Feed Server
-  - APP_VERSION=v1.0.0
-  - DEPLOYMENT_TYPE=Blue-Green with Argo Rollouts
-  - LOG_LEVEL=info
-  - SPRING_PROFILES_ACTIVE=default
-  - JAVA_OPTS=-Xms512m -Xmx1024m -XX:+UseG1GC -XX:+UseContainerSupport
-
-# 네임스페이스 (overlay에서 설정)
-# namespace: feed-server-dev
-
-# 공통 이미지 태그
+# 기본 이미지 설정 (overlay에서 오버라이드됨)
 images:
 - name: feed-server
-  newName: 421114334882.dkr.ecr.ap-northeast-2.amazonaws.com/feed-server
+  newName: feed-server
   newTag: "latest" 

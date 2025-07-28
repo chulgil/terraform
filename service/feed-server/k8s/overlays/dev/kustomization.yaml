@@ -26,8 +26,7 @@ commonAnnotations:
 
 # 환경별 설정 오버라이드
 configMapGenerator:
-- behavior: merge
-  literals:
+- literals:
   - ENVIRONMENT=dev
   - DEBUG=true
   - LOG_LEVEL=debug
@@ -52,30 +51,3 @@ images:
 - name: feed-server
   newName: 421114334882.dkr.ecr.ap-northeast-2.amazonaws.com/feed-server
   newTag: 2c54464d9a8c4ba42ad5ccc5d489fbc23b85491e
-
-# 리소스에 접두사/접미사 추가
-namePrefix: dev-
-nameSuffix: -v1
-
-# 이미지 태그를 위한 ConfigMap 생성
-configMapGenerator:
-- behavior: merge
-  literals:
-  - ENVIRONMENT=dev
-  - DEBUG=true
-  - LOG_LEVEL=debug
-  - ENABLE_METRICS=true
-  - ROLLOUT_STRATEGY=blue-green
-  - IMAGE_TAG=latest
-  name: feed-server-env-config
-
-# ConfigMap을 환경 변수로 사용하기 위한 패치
-patches:
-- path: rollout-patch.yaml
-  target:
-    kind: Rollout
-    name: feed-server-rollout
-- path: configmap-patch.yaml
-  target:
-    kind: ConfigMap
-    name: feed-server-config

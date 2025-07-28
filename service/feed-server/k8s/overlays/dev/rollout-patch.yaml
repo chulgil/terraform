@@ -24,8 +24,6 @@ spec:
         # 이미지는 kustomize가 자동으로 업데이트
         # 개발 환경 특화 환경 변수
         envFrom:
-        - configMapRef:
-            name: feed-server-env-config
         - secretRef:
             name: feed-server-secrets
         env:
@@ -43,8 +41,16 @@ spec:
           value: "debug"
         - name: SPRING_PROFILES_ACTIVE
           value: "dev"
+        - name: SPRING_CONFIG_LOCATION
+          value: "file:/app/config/application-dev.yml"
         - name: JAVA_OPTS
           value: "-Xms512m -Xmx1024m -XX:+UseG1GC -XX:+UseContainerSupport -Dspring.profiles.active=dev"
+        
+        # ConfigMap을 파일로 마운트
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+          readOnly: true
         
         # 개발 환경에서는 더 관대한 리소스
         resources:
@@ -71,4 +77,10 @@ spec:
           initialDelaySeconds: 20
           periodSeconds: 10
           timeoutSeconds: 5
-          failureThreshold: 3 
+          failureThreshold: 3
+      
+      # ConfigMap 볼륨 정의
+      volumes:
+      - name: config-volume
+        configMap:
+          name: feed-server-config 

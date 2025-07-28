@@ -19,6 +19,7 @@ Feed Server는 Spring Boot 3.1과 Java 21을 기반으로 하며, Argo Rollouts�
 - **📊 모니터링**: 배포 상태 실시간 추적
 - **🚀 무중단 배포**: 트래픽 손실 없는 업데이트
 - **🏥 Health Check**: Spring Actuator 기반 헬스체크
+- **⚙️ ConfigMap**: 환경별 설정 관리
 
 ---
 
@@ -39,6 +40,11 @@ graph TB
             Rollout --> Blue[🔵 Blue Pods]
             Rollout --> Green[🟢 Green Pods]
             Preview[👁️ Preview Service] --> Green
+        end
+        
+        subgraph "Configuration"
+            ConfigMap[📋 ConfigMap] --> Rollout
+            ConfigMap --> |application-dev.yml| App[🍽️ Feed Server App]
         end
         
         subgraph "GitOps"
@@ -75,7 +81,7 @@ open https://rollouts-dev.barodream.com/rollouts/
 # 새 버전 배포 (이미지 변경)
 kubectl argo rollouts set image feed-server-rollout \
   -n feed-server-dev \
-  feed-server=openjdk:21-jdk-slim
+  feed-server=421114334882.dkr.ecr.ap-northeast-2.amazonaws.com/feed-server:latest
 
 # 배포 진행 상황 실시간 확인
 kubectl argo rollouts get rollout feed-server-rollout \
@@ -93,20 +99,26 @@ kubectl argo rollouts promote feed-server-rollout \
 ```
 service/feed-server/
 ├── README.md                          # 📖 이 문서
-├── src/                               # 🔧 소스코드 (향후 확장)
+├── Dockerfile                         # 🐳 Docker 이미지 빌드
+├── .dockerignore                      # 🚫 Docker 빌드 제외 파일
+├── src/                               # 🔧 소스코드
+│   ├── build.gradle                   # 📦 Gradle 빌드 설정
+│   ├── gradle/                        # 🎯 Gradle Wrapper
+│   └── src/                           # 💻 애플리케이션 소스
 └── k8s/                               # ☸️ Kubernetes 매니페스트
     ├── base/                          # 📦 기본 리소스
+    │   ├── kustomization.yaml         # 📋 Base 설정
     │   ├── rollout.yaml               # 🎯 Argo Rollout 정의
     │   ├── service.yaml               # 🔄 Active Service
     │   ├── service-preview.yaml       # 👁️ Preview Service
-    │   ├── analysis-template.yaml     # 📊 분석 템플릿 (옵션)
-    │   └── kustomization.yaml         # 📋 Base 설정
+    │   └── configmap.yaml             # 📋 기본 ConfigMap
     └── overlays/                      # 🌍 환경별 설정
         └── dev/                       # 🔧 개발 환경
+            ├── kustomization.yaml     # 📋 Dev 설정
             ├── namespace.yaml         # 📂 네임스페이스
             ├── ingress.yaml           # 🌐 HTTPS 인그레스
-            ├── rollout-patch.yaml     # 🔧 Dev 환경 패치
-            └── kustomization.yaml     # 📋 Dev 설정
+            ├── rollout-patch.yaml     # 🔧 Dev 환경 Rollout 패치
+            └── configmap-patch.yaml   # 🔧 Dev 환경 ConfigMap 패치
 ```
 
 ---
@@ -120,16 +132,38 @@ service/feed-server/
 strategy:
   blueGreen:
     activeService: feed-server         # 활성 트래픽
-previewService: feed-server-preview # 미리보기 서비스
-    autoPromotionEnabled: false       # 수동 승인
-    scaleDownDelaySeconds: 30         # 정리 지연 시간
+    previewService: feed-server-preview # 미리보기 서비스
+    autoPromotionEnabled: true         # 자동 승인 (개발 환경)
+    scaleDownDelaySeconds: 10          # 정리 지연 시간 (개발 환경)
+```
+
+### **📋 ConfigMap 설정**
+
+#### **Base ConfigMap** (`base/configmap.yaml`)
+```yaml
+data:
+  application.yml: |
+    spring:
+      application:
+        name: feed-server
+      # 기본 설정들...
+```
+
+#### **Dev ConfigMap Patch** (`overlays/dev/configmap-patch.yaml`)
+```yaml
+data:
+  application-dev.yml: |
+    spring:
+      profiles:
+        active: dev
+      # 개발 환경 전용 설정들...
 ```
 
 ### **🌐 도메인 및 SSL**
 
 | 환경 | 도메인 | 용도 | SSL |
 |------|--------|------|-----|
-| **Dev** | `feed-server-dev.barodream.com` | 활성 서비스 | ✅ AWS ACM |
+| **Dev** | `feed-dev.barodream.com` | 활성 서비스 | ✅ AWS ACM |
 | **Preview** | 내부 서비스 | Blue/Green 테스트 | ✅ 클러스터 내 |
 
 ### **📊 모니터링 대시보드**
@@ -158,6 +192,10 @@ kubectl argo rollouts retry feed-server-rollout -n feed-server-dev    # 재시�
 # 🔍 히스토리 확인
 kubectl argo rollouts history rollout feed-server-rollout -n feed-server-dev
 kubectl argo rollouts undo feed-server-rollout -n feed-server-dev     # 롤백
+
+# 📋 ConfigMap 확인
+kubectl get configmap feed-server-config -n feed-server-dev -o yaml
+kubectl describe configmap feed-server-config -n feed-server-dev
 ```
 
 ### **🐛 트러블슈팅**
@@ -181,14 +219,23 @@ kubectl get pods -n feed-server-dev
 kubectl describe pod <pod-name> -n feed-server-dev
 ```
 
-#### **3. 인그레스 접속 불가**
+#### **3. ConfigMap 마운트 문제**
+```bash
+# ConfigMap 존재 확인
+kubectl get configmap -n feed-server-dev
+
+# Pod에서 ConfigMap 마운트 확인
+kubectl exec -it <pod-name> -n feed-server-dev -- ls -la /app/config/
+```
+
+#### **4. 인그레스 접속 불가**
 ```bash
 # ALB 상태 확인
 kubectl get ingress -n feed-server-dev
 kubectl describe ingress feed-server-ingress -n feed-server-dev
 
 # DNS 확인
-nslookup feed-server-dev.barodream.com
+nslookup feed-dev.barodream.com
 ```
 
 </details>
@@ -206,14 +253,14 @@ kubectl argo rollouts get rollout feed-server-rollout -n feed-server-dev
 # 2. 새 버전 배포
 kubectl argo rollouts set image feed-server-rollout \
   -n feed-server-dev \
-  feed-server=openjdk:21-jdk-slim
+  feed-server=421114334882.dkr.ecr.ap-northeast-2.amazonaws.com/feed-server:latest
 
 # 3. Preview 서비스에서 테스트
 kubectl port-forward svc/feed-server-preview -n feed-server-dev 8080:8080
 # http://localhost:8080 접속하여 테스트
 
-# 4. 테스트 통과 시 승인
-kubectl argo rollouts promote feed-server-rollout -n feed-server-dev
+# 4. 테스트 통과 시 승인 (자동 승인 설정됨)
+# kubectl argo rollouts promote feed-server-rollout -n feed-server-dev
 
 # 5. 결과 확인
 kubectl argo rollouts get rollout feed-server-rollout -n feed-server-dev
@@ -230,6 +277,19 @@ kubectl argo rollouts undo rollout feed-server-rollout -n feed-server-dev
 
 # 3. 상태 확인
 kubectl argo rollouts get rollout feed-server-rollout -n feed-server-dev
+```
+
+### **🔧 시나리오 3: ConfigMap 설정 변경**
+
+```bash
+# 1. ConfigMap 패치 파일 수정
+# service/feed-server/k8s/overlays/dev/configmap-patch.yaml
+
+# 2. 변경사항 적용
+kubectl apply -k service/feed-server/k8s/overlays/dev
+
+# 3. Pod 재시작 (필요시)
+kubectl rollout restart rollout feed-server-rollout -n feed-server-dev
 ```
 
 ---
@@ -251,11 +311,13 @@ kubectl argo rollouts get rollout feed-server-rollout -n feed-server-dev
 - [ ] **Canary 배포** 전략 추가
 - [ ] **메트릭 기반 자동 승인** (Prometheus 연동)
 - [ ] **알림 시스템** (Slack/Discord)
+- [ ] **환경별 ConfigMap** (staging, prod)
 
 ### **🚀 장기 계획**
 - [ ] **멀티 클러스터** 배포
 - [ ] **A/B 테스트** 프레임워크
 - [ ] **성능 테스트** 자동화
+- [ ] **Secret 관리** (AWS Secrets Manager 연동)
 
 ---
 

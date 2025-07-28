@@ -14,14 +14,6 @@ spec:
       previewService: feed-server-preview
       autoPromotionEnabled: true
       scaleDownDelaySeconds: 30
-      # prePromotionAnalysis:
-      #   templates:
-      #   - templateName: simple-health-check
-      #   args:
-      #   - name: service-name
-      #     value: feed-server-preview
-      #   - name: namespace
-      #     value: feed-server-dev
   selector:
     matchLabels:
       app: feed-server
@@ -48,8 +40,14 @@ spec:
           value: "Blue-Green with Argo Rollouts"
         - name: SPRING_PROFILES_ACTIVE
           value: "default"
+        - name: SPRING_CONFIG_LOCATION
+          value: "file:/app/config/application.yml"
         - name: JAVA_OPTS
           value: "-Xms512m -Xmx1024m -XX:+UseG1GC -XX:+UseContainerSupport"
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+          readOnly: true
         resources:
           requests:
             memory: "1Gi"
@@ -73,4 +71,8 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
+      volumes:
+      - name: config-volume
+        configMap:
+          name: feed-server-config
   revisionHistoryLimit: 3 
