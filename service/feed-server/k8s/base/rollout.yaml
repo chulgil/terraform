@@ -35,9 +35,9 @@ spec:
     spec:
       containers:
       - name: feed-server
-        image: nginx:1.22-alpine
+        image: openjdk:21-jdk-slim
         ports:
-        - containerPort: 80
+        - containerPort: 8080
           name: http
         env:
         - name: APP_NAME
@@ -46,23 +46,31 @@ spec:
           value: "v1.0.0"
         - name: DEPLOYMENT_TYPE
           value: "Blue-Green with Argo Rollouts"
+        - name: SPRING_PROFILES_ACTIVE
+          value: "default"
+        - name: JAVA_OPTS
+          value: "-Xms512m -Xmx1024m -XX:+UseG1GC -XX:+UseContainerSupport"
         resources:
           requests:
-            memory: "32Mi"
-            cpu: "25m"
+            memory: "1Gi"
+            cpu: "500m"
           limits:
-            memory: "64Mi"
-            cpu: "50m"
+            memory: "2Gi"
+            cpu: "1000m"
         livenessProbe:
           httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 30
-          periodSeconds: 10
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 5
+            path: /actuator/health/readiness
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
   revisionHistoryLimit: 3 

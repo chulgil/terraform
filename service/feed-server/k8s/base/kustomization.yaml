@@ -31,11 +31,13 @@ configMapGenerator:
   - APP_VERSION=v1.0.0
   - DEPLOYMENT_TYPE=Blue-Green with Argo Rollouts
   - LOG_LEVEL=info
+  - SPRING_PROFILES_ACTIVE=default
+  - JAVA_OPTS=-Xms512m -Xmx1024m -XX:+UseG1GC -XX:+UseContainerSupport
 
 # 네임스페이스 (overlay에서 설정)
 # namespace: feed-server-dev
 
 # 공통 이미지 태그
 images:
-- name: nginx
-  newTag: "1.21-alpine" 
+- name: openjdk
+  newTag: "21-jdk-slim" 

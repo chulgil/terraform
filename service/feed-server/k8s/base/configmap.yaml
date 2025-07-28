@@ -5,38 +5,69 @@ metadata:
   labels:
     app: feed-server
 data:
-  app.properties: |
-    app.name=Feed Server
-    app.description=A demo application for GitOps
-    app.env=base
+  application.yml: |
+    spring:
+      application:
+        name: feed-server
+      profiles:
+        active: default
+      datasource:
+        url: jdbc:h2:mem:testdb
+        driver-class-name: org.h2.Driver
+        username: sa
+        password: 
+      h2:
+        console:
+          enabled: true
+          path: /h2-console
+      jpa:
+        hibernate:
+          ddl-auto: create-drop
+        show-sql: true
+        properties:
+          hibernate:
+            format_sql: true
+      actuator:
+        endpoints:
+          web:
+            exposure:
+              include: health,info,metrics,prometheus
+        endpoint:
+          health:
+            show-details: always
+            probes:
+              enabled: true
+        health:
+          livenessstate:
+            enabled: true
+          readinessstate:
+            enabled: true
     
-  index.html: |
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Feed Server</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 40px; background: #f0f8ff; }
-            .container { max-width: 800px; margin: 0 auto; padding: 20px; }
-            .header { text-align: center; color: #2e86de; }
-            .bubble { display: inline-block; width: 20px; height: 20px; background: #54a0ff; 
-                     border-radius: 50%; margin: 5px; animation: float 2s ease-in-out infinite; }
-            @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1 class="header">🍽️ Feed Server Application</h1>
-            <div class="bubbles">
-                <span class="bubble"></span>
-                <span class="bubble"></span>
-                <span class="bubble"></span>
-                <span class="bubble"></span>
-                <span class="bubble"></span>
-            </div>
-            <p>Environment: <strong>{{APP_ENV}}</strong></p>
-            <p>Version: <strong>{{APP_VERSION}}</strong></p>
-            <p>GitOps Demo Application running on Kubernetes!</p>
-        </div>
-    </body>
-    </html> 
+    server:
+      port: 8080
+      servlet:
+        context-path: /
+    
+    logging:
+      level:
+        com.example.feedserver: DEBUG
+        org.springframework.web: DEBUG
+        org.hibernate.SQL: DEBUG
+      pattern:
+        console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,metrics,prometheus
+      endpoint:
+        health:
+          show-details: always
+          probes:
+            enabled: true
+      health:
+        livenessstate:
+          enabled: true
+        readinessstate:
+          enabled: true 

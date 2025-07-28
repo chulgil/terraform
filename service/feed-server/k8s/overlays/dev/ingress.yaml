@@ -33,7 +33,7 @@ spec:
           service:
             name: feed-server
             port:
-              number: 80
+              number: 8080
   tls:
   - hosts:
     - feed-server-dev.barodream.com 

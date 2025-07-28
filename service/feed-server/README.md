@@ -1,6 +1,6 @@
 # 🍽️ Feed Server Application
 
-**Argo Rollouts Blue/Green 배포 기반 Cloud-Native 애플리케이션**
+**Spring Boot 3.1 + Java 21 기반 Argo Rollouts Blue/Green 배포 애플리케이션**
 
 ![Kubernetes](https://img.shields.io/badge/kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)
 ![Argo](https://img.shields.io/badge/argo-EF7B4D?style=for-the-badge&logo=argo&logoColor=white)
@@ -8,14 +8,17 @@
 
 ## 📋 **개요**
 
-Feed Server는 Argo Rollouts를 활용한 고급 배포 전략(Blue/Green, Canary)을 구현한 데모 애플리케이션입니다. 
+Feed Server는 Spring Boot 3.1과 Java 21을 기반으로 하며, Argo Rollouts를 활용한 고급 배포 전략(Blue/Green, Canary)을 구현한 데모 애플리케이션입니다. 
 
 ### **🎯 주요 특징**
+- **☕ Java 21**: 최신 LTS 버전 사용
+- **🌱 Spring Boot 3.1**: 최신 Spring Boot 프레임워크
 - **✅ Argo Rollouts**: Blue/Green 배포 전략
 - **🔄 GitOps**: ArgoCD 연동 자동 배포
 - **🌐 HTTPS**: AWS ACM 인증서 기반 보안 통신
 - **📊 모니터링**: 배포 상태 실시간 추적
 - **🚀 무중단 배포**: 트래픽 손실 없는 업데이트
+- **🏥 Health Check**: Spring Actuator 기반 헬스체크
 
 ---
 
@@ -72,7 +75,7 @@ open https://rollouts-dev.barodream.com/rollouts/
 # 새 버전 배포 (이미지 변경)
 kubectl argo rollouts set image feed-server-rollout \
   -n feed-server-dev \
-  feed-server=nginx:1.23-alpine
+  feed-server=openjdk:21-jdk-slim
 
 # 배포 진행 상황 실시간 확인
 kubectl argo rollouts get rollout feed-server-rollout \
@@ -203,10 +206,10 @@ kubectl argo rollouts get rollout feed-server-rollout -n feed-server-dev
 # 2. 새 버전 배포
 kubectl argo rollouts set image feed-server-rollout \
   -n feed-server-dev \
-  feed-server=nginx:1.23-alpine
+  feed-server=openjdk:21-jdk-slim
 
 # 3. Preview 서비스에서 테스트
-kubectl port-forward svc/feed-server-preview -n feed-server-dev 8080:80
+kubectl port-forward svc/feed-server-preview -n feed-server-dev 8080:8080
 # http://localhost:8080 접속하여 테스트
 
 # 4. 테스트 통과 시 승인

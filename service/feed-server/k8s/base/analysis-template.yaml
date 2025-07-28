@@ -63,7 +63,7 @@ spec:
                 - -c
                 - |
                   for i in $(seq 1 5); do
-                    if curl -f -s http://{{args.service-name}}.{{args.namespace}}.svc.cluster.local/ > /dev/null; then
+                    if curl -f -s http://{{args.service-name}}.{{args.namespace}}.svc.cluster.local:8080/actuator/health > /dev/null; then
                       echo "Healthy"
                       exit 0
                     fi
