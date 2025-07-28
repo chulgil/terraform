@@ -39,13 +39,13 @@ jobs:
 
     - name: Build with Gradle
       run: |
-        cd /github/workspace/service/feed-server
+        cd /github/workspace/service/feed-server/src
         chmod +x gradlew
         ./gradlew build --no-daemon
 
     - name: Run tests
       run: |
-        cd /github/workspace/service/feed-server
+        cd /github/workspace/service/feed-server/src
         ./gradlew test --no-daemon
 
   build-and-push:
