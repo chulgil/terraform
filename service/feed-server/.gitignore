@@ -130,6 +130,7 @@ temp/
 
 # Spring Boot specific
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 *.war
 *.nar
 *.ear
