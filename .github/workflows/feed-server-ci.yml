@@ -44,17 +44,22 @@ jobs:
         ls -la
         echo "Service directory contents:"
         ls -la service/feed-server/ || echo "Service directory not found"
+        echo "Java version:"
+        java -version
+        echo "Gradle version:"
+        ./service/feed-server/src/gradlew --version
 
     - name: Build with Gradle
       run: |
         cd service/feed-server/src
         chmod +x gradlew
-        ./gradlew build --no-daemon
+        chmod +x gradle/wrapper/gradle-wrapper.jar
+        ./gradlew build --no-daemon --stacktrace
 
     - name: Run tests
       run: |
         cd service/feed-server/src
-        ./gradlew test --no-daemon
+        ./gradlew test --no-daemon --stacktrace
 
   build-and-push:
     needs: build-and-test
