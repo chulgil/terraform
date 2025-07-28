@@ -73,7 +73,7 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Build and push image
+    - name: Build and push image to ECR
       run: |
         cd service/feed-server/src
         docker buildx build --platform linux/amd64 \
