@@ -50,4 +50,4 @@ patches:
 images:
 - name: feed-server
   newName: 421114334882.dkr.ecr.ap-northeast-2.amazonaws.com/feed-server
-  newTag: 2c54464d9a8c4ba42ad5ccc5d489fbc23b85491e
+  newTag: b8ff15a9bb9ac37d1cdbdc38e4ca06ebff473478
