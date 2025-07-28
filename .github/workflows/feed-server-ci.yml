@@ -96,7 +96,6 @@ jobs:
     - name: Verify AWS credentials
       run: |
         echo "AWS Account ID: ${{ secrets.AWS_ACCOUNT_ID }}"
-        echo "AWS Role ARN: ${{ secrets.AWS_ROLE_ARN }}"
         echo "AWS Region: ${{ env.AWS_REGION }}"
         aws sts get-caller-identity || echo "AWS credentials not configured"
 
@@ -108,7 +107,7 @@ jobs:
 
     - name: Build and push image to ECR
       run: |
-        cd service/feed-server/src
+        cd service/feed-server
         docker buildx build --platform linux/amd64 \
           -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }} \
           -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \

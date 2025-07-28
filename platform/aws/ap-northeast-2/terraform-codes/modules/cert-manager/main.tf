@@ -38,7 +38,7 @@ resource "helm_release" "cert_manager" {
   ]
 }
 
-# Create cert-manager namespace
+# Create cert-manager namespace (with ignore_changes to handle existing namespace)
 resource "kubernetes_namespace" "cert_manager" {
   metadata {
     name = "cert-manager"
@@ -48,6 +48,14 @@ resource "kubernetes_namespace" "cert_manager" {
       "app.kubernetes.io/name"            = "cert-manager"
       "app.kubernetes.io/instance"        = "cert-manager"
     }
+  }
+  
+  # Ignore changes to handle existing namespace
+  lifecycle {
+    ignore_changes = [
+      metadata[0].labels,
+      metadata[0].annotations
+    ]
   }
 }
 

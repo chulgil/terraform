@@ -4,15 +4,15 @@ FROM openjdk:21-jdk-slim AS builder
 WORKDIR /app
 
 # Copy Gradle files
-COPY build.gradle settings.gradle ./
-COPY gradle gradle
-COPY gradlew ./
+COPY src/build.gradle src/settings.gradle ./
+COPY src/gradle src/gradle
+COPY src/gradlew ./
 
 # Download dependencies
 RUN ./gradlew dependencies --no-daemon
 
 # Copy source code
-COPY main main
+COPY src/main src/main
 
 # Build the application
 RUN ./gradlew build -x test --no-daemon

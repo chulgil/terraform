@@ -81,38 +81,49 @@ output "vpc_endpoint_ecr_api_id" {
   value       = module.vpc.vpc_endpoint_ecr_api_id
 }
 
-# Cert-Manager Outputs
-output "cert_manager_helm_release_status" {
-  description = "Status of the cert-manager Helm release"
-  value       = module.cert_manager.helm_release_status
+# Cert-Manager Outputs (임시 비활성화)
+# output "cert_manager_helm_release_status" {
+#   description = "Status of the cert-manager Helm release"
+#   value       = module.cert_manager.helm_release_status
+# }
+# 
+# output "cert_manager_helm_release_version" {
+#   description = "Version of the cert-manager Helm release"
+#   value       = module.cert_manager.helm_release_version
+# }
+# 
+# output "letsencrypt_prod_issuer_name" {
+#   description = "Name of the Let's Encrypt production ClusterIssuer"
+#   value       = module.cert_manager.letsencrypt_prod_issuer_name
+# }
+# 
+# output "letsencrypt_staging_issuer_name" {
+#   description = "Name of the Let's Encrypt staging ClusterIssuer"
+#   value       = module.cert_manager.letsencrypt_staging_issuer_name
+# }
+# 
+# output "route53_issuer_name" {
+#   description = "Name of the Route53 DNS01 ClusterIssuer"
+#   value       = module.cert_manager.route53_issuer_name
+# }
+# 
+# output "cert_manager_iam_role_arn" {
+#   description = "ARN of the IAM role for the cert-manager service account"
+#   value       = module.cert_manager.iam_role_arn
+# }
+# 
+# output "test_certificate_name" {
+#   description = "Name of the test certificate"
+#   value       = module.cert_manager.test_certificate_name
+# }
+
+# GitHub Actions OIDC Outputs
+output "github_actions_role_arn" {
+  description = "GitHub Actions IAM Role ARN"
+  value       = module.eks.github_actions_role_arn
 }
 
-output "cert_manager_helm_release_version" {
-  description = "Version of the cert-manager Helm release"
-  value       = module.cert_manager.helm_release_version
-}
-
-output "letsencrypt_prod_issuer_name" {
-  description = "Name of the Let's Encrypt production ClusterIssuer"
-  value       = module.cert_manager.letsencrypt_prod_issuer_name
-}
-
-output "letsencrypt_staging_issuer_name" {
-  description = "Name of the Let's Encrypt staging ClusterIssuer"
-  value       = module.cert_manager.letsencrypt_staging_issuer_name
-}
-
-output "route53_issuer_name" {
-  description = "Name of the Route53 DNS01 ClusterIssuer"
-  value       = module.cert_manager.route53_issuer_name
-}
-
-output "cert_manager_iam_role_arn" {
-  description = "ARN of the IAM role for the cert-manager service account"
-  value       = module.cert_manager.iam_role_arn
-}
-
-output "test_certificate_name" {
-  description = "Name of the test certificate"
-  value       = module.cert_manager.test_certificate_name
+output "github_actions_oidc_provider_arn" {
+  description = "GitHub Actions OIDC Provider ARN"
+  value       = module.eks.github_actions_oidc_provider_arn
 }

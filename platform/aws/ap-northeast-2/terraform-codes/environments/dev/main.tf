@@ -112,36 +112,36 @@ module "alb_controller" {
   ]
 }
 
-# Cert-Manager Module
-module "cert_manager" {
-  source = "../../modules/cert-manager"
-
-  cluster_name = module.eks.cluster_name
-  oidc_provider_arn = module.eks.oidc_provider_arn
-  
-  # Let's Encrypt configuration
-  letsencrypt_email = var.letsencrypt_email
-  ingress_class     = "alb"  # Using ALB for HTTP01 challenges
-  
-  # Route53 configuration (optional, set to true if using Route53 for DNS01 challenges)
-  create_route53_issuer = var.enable_route53_issuer
-  route53_region        = var.region
-  route53_hosted_zone_id = var.route53_hosted_zone_id
-  
-  # Test certificate configuration
-  create_test_certificate      = var.create_test_certificate
-  test_certificate_namespace   = var.test_certificate_namespace
-  test_certificate_issuer      = var.test_certificate_issuer
-  test_certificate_domain      = var.test_certificate_domain
-  
-  # Common tags
-  common_tags = local.common_tags
-  
-  depends_on = [
-    module.eks,
-    module.alb_controller  # ALB controller should be ready before cert-manager
-  ]
-}
+# Cert-Manager Module (임시 비활성화)
+# module "cert_manager" {
+#   source = "../../modules/cert-manager"
+# 
+#   cluster_name = module.eks.cluster_name
+#   oidc_provider_arn = module.eks.oidc_provider_arn
+#   
+#   # Let's Encrypt configuration
+#   letsencrypt_email = var.letsencrypt_email
+#   ingress_class     = "alb"  # Using ALB for HTTP01 challenges
+#   
+#   # Route53 configuration (optional, set to true if using Route53 for DNS01 challenges)
+#   create_route53_issuer = var.enable_route53_issuer
+#   route53_region        = var.region
+#   route53_hosted_zone_id = var.route53_hosted_zone_id
+#   
+#   # Test certificate configuration
+#   create_test_certificate      = var.create_test_certificate
+#   test_certificate_namespace   = var.test_certificate_namespace
+#   test_certificate_issuer      = var.test_certificate_issuer
+#   test_certificate_domain      = var.test_certificate_domain
+#   
+#   # Common tags
+#   common_tags = local.common_tags
+#   
+#   depends_on = [
+#     module.eks,
+#     module.alb_controller  # ALB controller should be ready before cert-manager
+#   ]
+# }
 
 # EFS Module
 module "efs" {

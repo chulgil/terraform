@@ -1,84 +1,77 @@
+# AWS Load Balancer Controller Module
+# EKS 클러스터에 ALB Controller를 설치하는 모듈
+
 # IAM Policy for ALB Controller
 resource "aws_iam_policy" "alb_controller" {
   name        = "${var.cluster_name}-alb-controller"
-  description = "Policy for ALB Controller"
-  
+  description = "Policy for AWS Load Balancer Controller"
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
         Effect = "Allow"
         Action = [
-          "iam:CreateServiceLinkedRole",
+          "iam:CreateServiceLinkedRole"
+        ]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "iam:AWSServiceName": "elasticloadbalancing.amazonaws.com"
+          }
+        }
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "ec2:DescribeAccountAttributes",
           "ec2:DescribeAddresses",
-          "ec2:DescribeAvailabilityZones",
           "ec2:DescribeInternetGateways",
           "ec2:DescribeVpcs",
           "ec2:DescribeSubnets",
           "ec2:DescribeSecurityGroups",
-          "ec2:GetSecurityGroupsForVpc",
           "ec2:DescribeInstances",
           "ec2:DescribeNetworkInterfaces",
           "ec2:DescribeTags",
+          "ec2:GetCoipPoolUsage",
+          "ec2:DescribeCoipPools",
           "elasticloadbalancing:DescribeLoadBalancers",
           "elasticloadbalancing:DescribeLoadBalancerAttributes",
           "elasticloadbalancing:DescribeListeners",
-          "elasticloadbalancing:DescribeListenerAttributes",
           "elasticloadbalancing:DescribeListenerCertificates",
           "elasticloadbalancing:DescribeSSLPolicies",
           "elasticloadbalancing:DescribeRules",
           "elasticloadbalancing:DescribeTargetGroups",
           "elasticloadbalancing:DescribeTargetGroupAttributes",
           "elasticloadbalancing:DescribeTargetHealth",
-          "elasticloadbalancing:DescribeTags",
-          "elasticloadbalancing:CreateLoadBalancer",
-          "elasticloadbalancing:CreateTargetGroup",
-          "elasticloadbalancing:CreateListener",
-          "elasticloadbalancing:DeleteListener",
-          "elasticloadbalancing:CreateRule",
-          "elasticloadbalancing:DeleteRule",
-          "elasticloadbalancing:AddTags",
-          "elasticloadbalancing:RemoveTags",
-          "elasticloadbalancing:ModifyLoadBalancerAttributes",
-          "elasticloadbalancing:ModifyTargetGroup",
-          "elasticloadbalancing:ModifyTargetGroupAttributes",
-          "elasticloadbalancing:RegisterTargets",
-          "elasticloadbalancing:DeregisterTargets",
-          "elasticloadbalancing:SetWebAcl",
-          "elasticloadbalancing:ModifyListener",
-          "elasticloadbalancing:AddListenerCertificates",
-          "elasticloadbalancing:RemoveListenerCertificates",
-          "elasticloadbalancing:ModifyRule",
-          "elasticloadbalancing:DeleteLoadBalancer",
-          "elasticloadbalancing:DeleteTargetGroup",
-          "elasticloadbalancing:SetIpAddressType",
-          "elasticloadbalancing:SetSecurityGroups",
-          "elasticloadbalancing:SetSubnets"
+          "elasticloadbalancing:DescribeTags"
         ]
         Resource = "*"
       },
       {
         Effect = "Allow"
         Action = [
-          "ec2:AuthorizeSecurityGroupIngress",
-          "ec2:RevokeSecurityGroupIngress",
-          "ec2:CreateSecurityGroup"
+          "cognito-idp:DescribeUserPoolClient",
+          "acm:ListCertificates",
+          "acm:DescribeCertificate",
+          "iam:ListServerCertificates",
+          "iam:GetServerCertificate"
         ]
         Resource = "*"
       },
       {
         Effect = "Allow"
         Action = [
+          "ec2:CreateSecurityGroup",
           "ec2:CreateTags"
         ]
         Resource = "arn:aws:ec2:*:*:security-group/*"
         Condition = {
           StringEquals = {
-            "ec2:CreateAction" = "CreateSecurityGroup"
+            "ec2:CreateAction": "CreateSecurityGroup"
           }
           Null = {
-            "aws:RequestTag/elbv2.k8s.aws/cluster" = "false"
+            "aws:RequestTag/elbv2.k8s.aws/resource": "false"
           }
         }
       },
@@ -91,8 +84,8 @@ resource "aws_iam_policy" "alb_controller" {
         Resource = "arn:aws:ec2:*:*:security-group/*"
         Condition = {
           Null = {
-            "aws:RequestTag/elbv2.k8s.aws/cluster" = "true"
-            "aws:ResourceTag/elbv2.k8s.aws/cluster" = "false"
+            "aws:RequestTag/elbv2.k8s.aws/resource": "true",
+            "ec2:ResourceTag/elbv2.k8s.aws/resource": "false"
           }
         }
       },
@@ -100,15 +93,9 @@ resource "aws_iam_policy" "alb_controller" {
         Effect = "Allow"
         Action = [
           "ec2:AuthorizeSecurityGroupIngress",
-          "ec2:RevokeSecurityGroupIngress",
-          "ec2:DeleteSecurityGroup"
+          "ec2:RevokeSecurityGroupIngress"
         ]
         Resource = "*"
-        Condition = {
-          Null = {
-            "aws:ResourceTag/elbv2.k8s.aws/cluster" = "false"
-          }
-        }
       },
       {
         Effect = "Allow"
@@ -119,7 +106,7 @@ resource "aws_iam_policy" "alb_controller" {
         Resource = "*"
         Condition = {
           Null = {
-            "aws:RequestTag/elbv2.k8s.aws/cluster" = "false"
+            "aws:RequestTag/elbv2.k8s.aws/resource": "false"
           }
         }
       },
@@ -129,11 +116,14 @@ resource "aws_iam_policy" "alb_controller" {
           "elasticloadbalancing:CreateListener",
           "elasticloadbalancing:DeleteListener",
           "elasticloadbalancing:CreateRule",
-          "elasticloadbalancing:DeleteRule"
+          "elasticloadbalancing:DeleteRule",
+          "elasticloadbalancing:SetWebAcl",
+          "elasticloadbalancing:ModifyListener",
+          "elasticloadbalancing:AddListenerCertificates",
+          "elasticloadbalancing:RemoveListenerCertificates",
+          "elasticloadbalancing:ModifyRule"
         ]
-        Resource = [
-          "*"
-        ]
+        Resource = "*"
       },
       {
         Effect = "Allow"
@@ -148,8 +138,8 @@ resource "aws_iam_policy" "alb_controller" {
         ]
         Condition = {
           Null = {
-            "aws:RequestTag/elbv2.k8s.aws/cluster" = "true"
-            "aws:ResourceTag/elbv2.k8s.aws/cluster" = "false"
+            "aws:RequestTag/elbv2.k8s.aws/resource": "true",
+            "elasticloadbalancing:ResourceTag/elbv2.k8s.aws/resource": "false"
           }
         }
       },
@@ -161,8 +151,8 @@ resource "aws_iam_policy" "alb_controller" {
         ]
         Resource = [
           "arn:aws:elasticloadbalancing:*:*:listener/net/*/*/*",
-          "arn:aws:elasticloadbalancing:*:*:listener-rule/net/*/*/*",
           "arn:aws:elasticloadbalancing:*:*:listener/app/*/*/*",
+          "arn:aws:elasticloadbalancing:*:*:listener-rule/net/*/*/*",
           "arn:aws:elasticloadbalancing:*:*:listener-rule/app/*/*/*"
         ]
       },
@@ -181,7 +171,7 @@ resource "aws_iam_policy" "alb_controller" {
         Resource = "*"
         Condition = {
           Null = {
-            "aws:ResourceTag/elbv2.k8s.aws/cluster" = "false"
+            "aws:ResourceTag/elbv2.k8s.aws/resource": "false"
           }
         }
       },
@@ -192,17 +182,6 @@ resource "aws_iam_policy" "alb_controller" {
           "elasticloadbalancing:DeregisterTargets"
         ]
         Resource = "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "elasticloadbalancing:SetWebAcl",
-          "elasticloadbalancing:ModifyListener",
-          "elasticloadbalancing:AddListenerCertificates",
-          "elasticloadbalancing:RemoveListenerCertificates",
-          "elasticloadbalancing:ModifyRule"
-        ]
-        Resource = "*"
       },
       {
         Effect = "Allow"
@@ -229,9 +208,11 @@ resource "aws_iam_policy" "alb_controller" {
           "shield:ListProtections"
         ]
         Resource = "*"
-      }      
+      }
     ]
   })
+
+  tags = var.common_tags
 }
 
 # IAM Role for Service Account (IRSA)
@@ -267,6 +248,15 @@ resource "helm_release" "alb_controller" {
   # Wait for the deployment to complete
   wait = true
   
+  # Force update to handle name conflicts
+  force_update = true
+  
+  # Replace existing release if name conflicts
+  replace = true
+  
+  # Clean up on failure
+  cleanup_on_fail = true
+  
   # Set values for the Helm chart
   set {
     name  = "clusterName"
@@ -281,12 +271,6 @@ resource "helm_release" "alb_controller" {
   set {
     name  = "serviceAccount.name"
     value = "aws-load-balancer-controller"
-  }
-  
-  # IRSA annotation for automatic AWS permissions
-  set {
-    name  = "serviceAccount.annotations.eks.amazonaws.com/role-arn"
-    value = module.alb_controller_irsa_role.iam_role_arn
   }
   
   set {
@@ -304,17 +288,19 @@ resource "helm_release" "alb_controller" {
     value = var.controller_image_tag
   }
   
+  # IRSA annotation - 문자열로 직접 설정
+  set {
+    name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+    value = module.alb_controller_irsa_role.iam_role_arn
+  }
+  
   depends_on = [
     module.alb_controller_irsa_role
   ]
   
   # Add a lifecycle block to ignore changes to the image tag
-  # This allows for manual updates of the controller version
   lifecycle {
     ignore_changes = [
-      # Ignore changes to all set values
-      set,
-      # Also ignore version changes
       version
     ]
   }
