@@ -41,4 +41,8 @@ patches:
     kind: Rollout
     name: feed-server-rollout
 
-# 이미지 태그 설정은 base와 patch에서 직접 관리 
+# 개발 환경 이미지 설정
+images:
+- name: feed-server
+  newName: 421114334882.dkr.ecr.ap-northeast-2.amazonaws.com/feed-server
+  newTag: "latest" 
