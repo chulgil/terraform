@@ -66,11 +66,16 @@ jobs:
     - name: Login to ECR
       uses: aws-actions/amazon-ecr-login@v2
 
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
     - name: Build and push image
       run: |
         cd service/feed-server/src
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }} .
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+        docker buildx build --platform linux/amd64 \
+          -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }} \
+          -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+          --push .
 
     - name: Update K8s manifests
       run: |
@@ -80,5 +85,5 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add kustomization.yaml
-        git commit -m "Update image to ${{ github.sha }}"
+        git commit -m "Update feed-server dev image to ${{ github.sha }}"
         git push 
