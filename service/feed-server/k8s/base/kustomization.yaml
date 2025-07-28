@@ -40,4 +40,5 @@ configMapGenerator:
 # 공통 이미지 태그
 images:
 - name: feed-server
+  newName: 421114334882.dkr.ecr.ap-northeast-2.amazonaws.com/feed-server
   newTag: "latest" 
