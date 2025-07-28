@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: bubblepool-dev
+  name: feed-server-dev
   labels:
-    name: bubblepool-dev
+    name: feed-server-dev
     environment: dev
-    project: bubblepool
+    project: feed-server
     managed-by: argocd 

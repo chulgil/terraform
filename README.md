@@ -147,7 +147,7 @@ management/argo-cd/
 
 ```
 service/
-├── bubblepool/              # Spring Boot 애플리케이션
+├── feed-server/             # Spring Boot 애플리케이션
 │   ├── base/
 │   │   ├── deployment.yaml  # 컨테이너 배포 정의
 │   │   ├── service.yaml     # 네트워크 서비스 정의
@@ -263,7 +263,7 @@ graph TB
         A1[Dev EKS Cluster]
         A2[project-a-dev namespace]
         A3[project-b-dev namespace]
-        A4[bubblepool-dev namespace]
+        A4[feed-server-dev namespace]
         A --> A1
         A1 --> A2
         A1 --> A3
@@ -275,8 +275,8 @@ graph TB
         B1[Prod EKS Cluster]
         B2[project-a-staging namespace]
         B3[project-a-prod namespace]
-        B4[bubblepool-staging namespace]
-        B5[bubblepool-prod namespace]
+        B4[feed-server-staging namespace]
+B5[feed-server-prod namespace]
         B --> B1
         B1 --> B2
         B1 --> B3
@@ -420,7 +420,7 @@ resources:
 │   │       └── terraform-codes/
 │   └── tools/                 # 인프라 도구들
 ├── service/                   # 애플리케이션 서비스
-│   ├── bubblepool/            # 샘플 애플리케이션
+│   ├── feed-server/           # 샘플 애플리케이션
 │   │   ├── base/              # 기본 매니페스트
 │   │   └── application.yaml   # ArgoCD 애플리케이션 정의
 │   └── guestbook/             # 게스트북 애플리케이션
@@ -919,7 +919,7 @@ footer
 
 예시:
 ```
-feat(service): add bubblepool application
+feat(service): add feed-server application
 
 - Add base Kubernetes manifests
 - Configure ArgoCD application
@@ -949,13 +949,13 @@ Closes #123
 
 ### **🔄 진행 예정**
 4. **ArgoCD 설치**: dev 환경에 GitOps 구축
-5. **첫 번째 애플리케이션 배포**: bubblepool 또는 guestbook 프로젝트
+5. **첫 번째 애플리케이션 배포**: feed-server 또는 guestbook 프로젝트
 6. **브랜치별 환경 설정**: dev, staging, main 브랜치 전략 구현
 7. **모니터링 및 로깅**: Prometheus, Grafana, CloudWatch 연동
 
 ### **📊 Dev 환경 현재 상태**
 - **AWS 배포**: ✅ 운영 중 (`dev-eks-cluster`)
-- **멀티 프로젝트**: ✅ 3-5개 프로젝트 지원 가능 (`bubblepool`, `guestbook`, `demo`)
+- **멀티 프로젝트**: ✅ 3-5개 프로젝트 지원 가능 (`feed-server`, `guestbook`, `demo`)
 - **GitOps 준비**: ✅ OIDC Provider, ALB Controller 준비 완료
 - **예상 비용**: 월 $150-200
 

@@ -1,4 +1,4 @@
-# 🫧 BubblePool Application
+# 🍽️ Feed Server Application
 
 **Argo Rollouts Blue/Green 배포 기반 Cloud-Native 애플리케이션**
 
@@ -8,7 +8,7 @@
 
 ## 📋 **개요**
 
-BubblePool은 Argo Rollouts를 활용한 고급 배포 전략(Blue/Green, Canary)을 구현한 데모 애플리케이션입니다. 
+Feed Server는 Argo Rollouts를 활용한 고급 배포 전략(Blue/Green, Canary)을 구현한 데모 애플리케이션입니다. 
 
 ### **🎯 주요 특징**
 - **✅ Argo Rollouts**: Blue/Green 배포 전략
@@ -57,10 +57,10 @@ graph TB
 
 ```bash
 # 1. 개발 환경 배포
-kubectl apply -k service/bubblepool/k8s/overlays/dev
+kubectl apply -k service/feed-server/k8s/overlays/dev
 
 # 2. 배포 상태 확인
-kubectl argo rollouts get rollout bubblepool-rollout -n bubblepool-dev
+kubectl argo rollouts get rollout feed-server-rollout -n feed-server-dev
 
 # 3. 웹 대시보드 접속
 open https://rollouts-dev.barodream.com/rollouts/
@@ -70,17 +70,17 @@ open https://rollouts-dev.barodream.com/rollouts/
 
 ```bash
 # 새 버전 배포 (이미지 변경)
-kubectl argo rollouts set image bubblepool-rollout \
-  -n bubblepool-dev \
-  bubblepool=nginx:1.23-alpine
+kubectl argo rollouts set image feed-server-rollout \
+  -n feed-server-dev \
+  feed-server=nginx:1.23-alpine
 
 # 배포 진행 상황 실시간 확인
-kubectl argo rollouts get rollout bubblepool-rollout \
-  -n bubblepool-dev --watch
+kubectl argo rollouts get rollout feed-server-rollout \
+  -n feed-server-dev --watch
 
 # 수동 프로모션 (Blue → Green 전환)
-kubectl argo rollouts promote bubblepool-rollout \
-  -n bubblepool-dev
+kubectl argo rollouts promote feed-server-rollout \
+  -n feed-server-dev
 ```
 
 ---
@@ -88,7 +88,7 @@ kubectl argo rollouts promote bubblepool-rollout \
 ## 📁 **프로젝트 구조**
 
 ```
-service/bubblepool/
+service/feed-server/
 ├── README.md                          # 📖 이 문서
 ├── src/                               # 🔧 소스코드 (향후 확장)
 └── k8s/                               # ☸️ Kubernetes 매니페스트
@@ -116,8 +116,8 @@ service/bubblepool/
 # Blue/Green 배포 설정
 strategy:
   blueGreen:
-    activeService: bubblepool         # 활성 트래픽
-    previewService: bubblepool-preview # 미리보기 서비스
+    activeService: feed-server         # 활성 트래픽
+previewService: feed-server-preview # 미리보기 서비스
     autoPromotionEnabled: false       # 수동 승인
     scaleDownDelaySeconds: 30         # 정리 지연 시간
 ```
@@ -126,14 +126,14 @@ strategy:
 
 | 환경 | 도메인 | 용도 | SSL |
 |------|--------|------|-----|
-| **Dev** | `bubblepool-dev.barodream.com` | 활성 서비스 | ✅ AWS ACM |
+| **Dev** | `feed-server-dev.barodream.com` | 활성 서비스 | ✅ AWS ACM |
 | **Preview** | 내부 서비스 | Blue/Green 테스트 | ✅ 클러스터 내 |
 
 ### **📊 모니터링 대시보드**
 
 - **URL**: https://rollouts-dev.barodream.com/rollouts/
-- **네임스페이스**: `bubblepool-dev`
-- **Rollout**: `bubblepool-rollout`
+- **네임스페이스**: `feed-server-dev`
+- **Rollout**: `feed-server-rollout`
 
 ---
 
@@ -143,18 +143,18 @@ strategy:
 
 ```bash
 # 📊 상태 확인
-kubectl argo rollouts get rollout bubblepool-rollout -n bubblepool-dev
-kubectl argo rollouts list rollouts -n bubblepool-dev
+kubectl argo rollouts get rollout feed-server-rollout -n feed-server-dev
+kubectl argo rollouts list rollouts -n feed-server-dev
 
 # 🚀 배포 관리
-kubectl argo rollouts set image bubblepool-rollout -n bubblepool-dev bubblepool=<new-image>
-kubectl argo rollouts promote bubblepool-rollout -n bubblepool-dev  # 승인
-kubectl argo rollouts abort bubblepool-rollout -n bubblepool-dev    # 중단
-kubectl argo rollouts retry bubblepool-rollout -n bubblepool-dev    # 재시도
+kubectl argo rollouts set image feed-server-rollout -n feed-server-dev feed-server=<new-image>
+kubectl argo rollouts promote feed-server-rollout -n feed-server-dev  # 승인
+kubectl argo rollouts abort feed-server-rollout -n feed-server-dev    # 중단
+kubectl argo rollouts retry feed-server-rollout -n feed-server-dev    # 재시도
 
 # 🔍 히스토리 확인
-kubectl argo rollouts history rollout bubblepool-rollout -n bubblepool-dev
-kubectl argo rollouts undo bubblepool-rollout -n bubblepool-dev     # 롤백
+kubectl argo rollouts history rollout feed-server-rollout -n feed-server-dev
+kubectl argo rollouts undo feed-server-rollout -n feed-server-dev     # 롤백
 ```
 
 ### **🐛 트러블슈팅**
@@ -165,27 +165,27 @@ kubectl argo rollouts undo bubblepool-rollout -n bubblepool-dev     # 롤백
 #### **1. Rollout이 Degraded 상태**
 ```bash
 # 원인 확인
-kubectl describe rollout bubblepool-rollout -n bubblepool-dev
+kubectl describe rollout feed-server-rollout -n feed-server-dev
 
 # Service selector 문제인 경우
-kubectl get service bubblepool -n bubblepool-dev -o yaml | grep selector -A 5
+kubectl get service feed-server -n feed-server-dev -o yaml | grep selector -A 5
 ```
 
 #### **2. 이미지 Pull 실패**
 ```bash
 # Pod 상태 확인
-kubectl get pods -n bubblepool-dev
-kubectl describe pod <pod-name> -n bubblepool-dev
+kubectl get pods -n feed-server-dev
+kubectl describe pod <pod-name> -n feed-server-dev
 ```
 
 #### **3. 인그레스 접속 불가**
 ```bash
 # ALB 상태 확인
-kubectl get ingress -n bubblepool-dev
-kubectl describe ingress bubblepool-ingress -n bubblepool-dev
+kubectl get ingress -n feed-server-dev
+kubectl describe ingress feed-server-ingress -n feed-server-dev
 
 # DNS 확인
-nslookup bubblepool-dev.barodream.com
+nslookup feed-server-dev.barodream.com
 ```
 
 </details>
@@ -198,35 +198,35 @@ nslookup bubblepool-dev.barodream.com
 
 ```bash
 # 1. 현재 상태 확인
-kubectl argo rollouts get rollout bubblepool-rollout -n bubblepool-dev
+kubectl argo rollouts get rollout feed-server-rollout -n feed-server-dev
 
 # 2. 새 버전 배포
-kubectl argo rollouts set image bubblepool-rollout \
-  -n bubblepool-dev \
-  bubblepool=nginx:1.23-alpine
+kubectl argo rollouts set image feed-server-rollout \
+  -n feed-server-dev \
+  feed-server=nginx:1.23-alpine
 
 # 3. Preview 서비스에서 테스트
-kubectl port-forward svc/bubblepool-preview -n bubblepool-dev 8080:80
+kubectl port-forward svc/feed-server-preview -n feed-server-dev 8080:80
 # http://localhost:8080 접속하여 테스트
 
 # 4. 테스트 통과 시 승인
-kubectl argo rollouts promote bubblepool-rollout -n bubblepool-dev
+kubectl argo rollouts promote feed-server-rollout -n feed-server-dev
 
 # 5. 결과 확인
-kubectl argo rollouts get rollout bubblepool-rollout -n bubblepool-dev
+kubectl argo rollouts get rollout feed-server-rollout -n feed-server-dev
 ```
 
 ### **🔴 시나리오 2: 문제 발생 시 롤백**
 
 ```bash
 # 1. 문제가 있는 배포 중단
-kubectl argo rollouts abort bubblepool-rollout -n bubblepool-dev
+kubectl argo rollouts abort feed-server-rollout -n feed-server-dev
 
 # 2. 이전 버전으로 롤백
-kubectl argo rollouts undo rollout bubblepool-rollout -n bubblepool-dev
+kubectl argo rollouts undo rollout feed-server-rollout -n feed-server-dev
 
 # 3. 상태 확인
-kubectl argo rollouts get rollout bubblepool-rollout -n bubblepool-dev
+kubectl argo rollouts get rollout feed-server-rollout -n feed-server-dev
 ```
 
 ---

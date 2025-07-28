@@ -5,7 +5,7 @@ metadata:
 spec:
   args:
   - name: service-name
-    value: bubblepool-preview
+    value: feed-server-preview
   - name: prometheus-url
     value: http://prometheus.monitoring.svc.cluster.local:9090
   metrics:
@@ -42,9 +42,9 @@ metadata:
 spec:
   args:
   - name: service-name
-    value: bubblepool-preview
+    value: feed-server-preview
   - name: namespace
-    value: bubblepool-dev
+    value: feed-server-dev
   metrics:
   - name: health-check
     successCondition: result == "Healthy"

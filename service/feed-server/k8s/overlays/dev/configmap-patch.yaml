@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: bubblepool-config
+  name: feed-server-config
 data:
   app.properties: |
-    app.name=BubblePool
+    app.name=Feed Server
     app.description=A demo application for GitOps - Development
     app.env=development
     debug.enabled=true
@@ -14,7 +14,7 @@ data:
     <!DOCTYPE html>
     <html>
     <head>
-        <title>BubblePool - Development</title>
+        <title>Feed Server - Development</title>
         <style>
             body { font-family: Arial, sans-serif; margin: 40px; background: #e8f5e8; }
             .container { max-width: 800px; margin: 0 auto; padding: 20px; }
@@ -29,7 +29,7 @@ data:
     <body>
         <div class="dev-banner">🚧 DEVELOPMENT ENVIRONMENT 🚧</div>
         <div class="container">
-            <h1 class="header">🫧 BubblePool Application</h1>
+            <h1 class="header">🍽️ Feed Server Application</h1>
             <div class="bubbles">
                 <span class="bubble"></span>
                 <span class="bubble"></span>

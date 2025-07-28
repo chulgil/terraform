@@ -1,4 +1,4 @@
-# BubblePool Development Environment
+# Feed Server Development Environment
 # Argo Rollouts Blue/Green 배포 - 개발 환경
 
 apiVersion: kustomize.config.k8s.io/v1beta1
@@ -11,7 +11,7 @@ resources:
 - ingress.yaml
 
 # 네임스페이스 설정
-namespace: bubblepool-dev
+namespace: feed-server-dev
 
 # 개발 환경 라벨 추가
 labels:
@@ -26,7 +26,7 @@ commonAnnotations:
 
 # 환경별 설정 오버라이드
 configMapGenerator:
-- name: bubblepool-env-config
+- name: feed-server-env-config
   literals:
   - ENVIRONMENT=dev
   - DEBUG=true
@@ -39,6 +39,6 @@ patches:
 - path: rollout-patch.yaml
   target:
     kind: Rollout
-    name: bubblepool-rollout
+    name: feed-server-rollout
 
 # 이미지 태그 설정은 base와 patch에서 직접 관리 

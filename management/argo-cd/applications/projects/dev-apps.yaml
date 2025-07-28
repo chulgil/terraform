@@ -1,12 +1,12 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: bubblepool-dev
+  name: feed-server-dev
   namespace: argocd
   labels:
-    app.kubernetes.io/name: bubblepool
+    app.kubernetes.io/name: feed-server
     environment: dev
-    project: bubblepool
+    project: feed-server
     managed-by: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -16,10 +16,10 @@ spec:
     # 하이브리드 패턴: 동일 저장소 내 service 디렉토리
     repoURL: https://github.com/chulgil/terraform
     targetRevision: main
-    path: service/bubblepool/k8s/overlays/dev
+    path: service/feed-server/k8s/overlays/dev
   destination:
     server: https://kubernetes.default.svc
-    namespace: bubblepool-dev
+    namespace: feed-server-dev
   syncPolicy:
     automated:
       prune: true

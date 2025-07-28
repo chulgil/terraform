@@ -1,17 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
-  name: bubblepool-rollout
+  name: feed-server-rollout
   labels:
-    app: bubblepool
-    app.kubernetes.io/name: bubblepool
-    app.kubernetes.io/part-of: bubblepool-suite
+    app: feed-server
+    app.kubernetes.io/name: feed-server
+    app.kubernetes.io/part-of: feed-server-suite
 spec:
   replicas: 1
   strategy:
     blueGreen:
-      activeService: bubblepool
-      previewService: bubblepool-preview
+      activeService: feed-server
+      previewService: feed-server-preview
       autoPromotionEnabled: false
       scaleDownDelaySeconds: 30
       # prePromotionAnalysis:
@@ -19,29 +19,29 @@ spec:
       #   - templateName: simple-health-check
       #   args:
       #   - name: service-name
-      #     value: bubblepool-preview
+      #     value: feed-server-preview
       #   - name: namespace
-      #     value: bubblepool-dev
+      #     value: feed-server-dev
   selector:
     matchLabels:
-      app: bubblepool
+      app: feed-server
   template:
     metadata:
       labels:
-        app: bubblepool
+        app: feed-server
         version: v1
-        app.kubernetes.io/name: bubblepool
-        app.kubernetes.io/part-of: bubblepool-suite
+        app.kubernetes.io/name: feed-server
+        app.kubernetes.io/part-of: feed-server-suite
     spec:
       containers:
-      - name: bubblepool
+      - name: feed-server
         image: nginx:1.22-alpine
         ports:
         - containerPort: 80
           name: http
         env:
         - name: APP_NAME
-          value: "BubblePool"
+          value: "Feed Server"
         - name: APP_VERSION
           value: "v1.0.0"
         - name: DEPLOYMENT_TYPE

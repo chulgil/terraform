@@ -6,7 +6,7 @@
 
 ```
 service/
-├── bubblepool/           # BubblePool 애플리케이션
+├── feed-server/          # Feed Server 애플리케이션
 │   ├── k8s/
 │   │   ├── base/         # 기본 Kubernetes 매니페스트
 │   │   └── overlays/     # 환경별 Kustomize 오버레이
@@ -39,7 +39,7 @@ service/
 
 | 애플리케이션 | 설명 | 환경 | 상태 |
 |-------------|------|------|------|
-| **BubblePool** | 데모 웹 애플리케이션 | dev | ✅ Ready |
+| **Feed Server** | 데모 웹 애플리케이션 | dev | ✅ Ready |
 | **GuestBook** | 전통적인 방명록 앱 | dev | ✅ Ready |
 
 ## 🚀 **배포 방법**
@@ -55,8 +55,8 @@ kubectl apply -f management/argo-cd/applications/projects/dev-apps.yaml
 
 ### **2. 수동 배포 (테스트용)**
 ```bash
-# BubblePool 배포
-kubectl kustomize service/bubblepool/k8s/overlays/dev | kubectl apply -f -
+# Feed Server 배포
+kubectl kustomize service/feed-server/k8s/overlays/dev | kubectl apply -f -
 
 # GuestBook 배포  
 kubectl kustomize service/guestbook/k8s/overlays/dev | kubectl apply -f -
@@ -64,10 +64,10 @@ kubectl kustomize service/guestbook/k8s/overlays/dev | kubectl apply -f -
 
 ## 🔍 **애플리케이션 접근**
 
-### **BubblePool**
-- **Namespace**: `bubblepool-dev`
-- **Service**: `bubblepool.bubblepool-dev.svc.cluster.local:80`
-- **Ingress**: `bubblepool-dev.your-domain.com` (설정 필요)
+### **Feed Server**
+- **Namespace**: `feed-server-dev`
+- **Service**: `feed-server.feed-server-dev.svc.cluster.local:80`
+- **Ingress**: `feed-server-dev.your-domain.com` (설정 필요)
 
 ### **GuestBook**
 - **Namespace**: `guestbook-dev`
@@ -113,7 +113,7 @@ patchesStrategicMerge:
 ### **예시**
 ```bash
 # Rollout 리소스 생성 (향후)
-kubectl apply -f service/bubblepool/k8s/rollouts/blue-green.yaml
+kubectl apply -f service/feed-server/k8s/rollouts/blue-green.yaml
 ```
 
 ## 🔍 **모니터링 및 관찰성**
@@ -141,21 +141,21 @@ kubectl apply -f service/bubblepool/k8s/rollouts/blue-green.yaml
 #### **Kustomize 빌드 오류**
 ```bash
 # 매니페스트 검증
-kubectl kustomize service/bubblepool/k8s/overlays/dev --dry-run
+kubectl kustomize service/feed-server/k8s/overlays/dev --dry-run
 ```
 
 #### **ArgoCD 동기화 실패**
 ```bash
 # ArgoCD 앱 상태 확인
 kubectl get applications -n argocd
-kubectl describe application bubblepool-dev -n argocd
+kubectl describe application feed-server-dev -n argocd
 ```
 
 #### **Pod 시작 실패**
 ```bash
 # Pod 로그 확인
-kubectl logs -n bubblepool-dev -l app=bubblepool
-kubectl describe pod -n bubblepool-dev -l app=bubblepool
+kubectl logs -n feed-server-dev -l app=feed-server
+kubectl describe pod -n feed-server-dev -l app=feed-server
 ```
 
 ## 🎯 **다음 단계**

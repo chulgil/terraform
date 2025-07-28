@@ -1,4 +1,4 @@
-# BubblePool Base Kustomization
+# Feed Server Base Kustomization
 # Argo Rollouts Blue/Green 배포를 위한 기본 리소스
 
 apiVersion: kustomize.config.k8s.io/v1beta1
@@ -15,25 +15,25 @@ resources:
 # 공통 라벨
 labels:
 - pairs:
-    app: bubblepool
-    app.kubernetes.io/name: bubblepool
-    app.kubernetes.io/part-of: bubblepool-suite
+    app: feed-server
+    app.kubernetes.io/name: feed-server
+    app.kubernetes.io/part-of: feed-server-suite
 
 # 공통 어노테이션
 commonAnnotations:
-  config.kubernetes.io/origin-source: "BubblePool App - Argo Rollouts Blue/Green"
+  config.kubernetes.io/origin-source: "Feed Server App - Argo Rollouts Blue/Green"
 
 # ConfigMap 생성 (환경 설정용)
 configMapGenerator:
-- name: bubblepool-config
+- name: feed-server-config
   literals:
-  - APP_NAME=BubblePool
+  - APP_NAME=Feed Server
   - APP_VERSION=v1.0.0
   - DEPLOYMENT_TYPE=Blue-Green with Argo Rollouts
   - LOG_LEVEL=info
 
 # 네임스페이스 (overlay에서 설정)
-# namespace: bubblepool-dev
+# namespace: feed-server-dev
 
 # 공통 이미지 태그
 images:
